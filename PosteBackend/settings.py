@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-!hh0(2v6uss+d%5)*-^sn&!tfsfepd3*ch-2dyohh(%^-imeq&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -68,6 +68,11 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    "PosteAPI.backends.EmailBackend",  # custom backend to verify email not username
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 WSGI_APPLICATION = "PosteBackend.wsgi.application"

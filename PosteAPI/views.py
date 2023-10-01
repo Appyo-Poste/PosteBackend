@@ -1,21 +1,54 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User
-
 # import local data
-from .serializers import UserLoginSerializer, UserSerializer
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer
 
 # Create views / viewsets here.
-class UserList(APIView):
+
+
+class UserAPI(APIView):
+    @swagger_auto_schema(
+        responses={
+            200: UserSerializer(many=True),
+            400: "Bad Request",
+        },
+    )
     def get(self, request):
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        request_body=UserCreateSerializer,
+        responses={
+            200: UserSerializer(many=False),
+            400: "Bad Request",
+        },
+    )
+    def post(self, request):
+        serializer = UserCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            user = User.objects.create_user(
+                username=serializer.validated_data["username"],
+                email=serializer.validated_data["email"],
+                password=serializer.validated_data["password"],
+            )
+            response = Response(
+                UserSerializer(user).data, status=status.HTTP_201_CREATED
+            )
+            print(response)
+            return response
+        else:
+            print(serializer.errors)
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            print(response)
+            return response
 
 
 class UserDetail(APIView):
@@ -38,29 +71,31 @@ class UserDetail(APIView):
 class UserLogin(APIView):
     @swagger_auto_schema(
         request_body=UserLoginSerializer,
-        responses={200: UserSerializer(many=False), 400: "Invalid email or password"},
+        responses={
+            200: UserSerializer(many=False),
+            400: "Bad Request",
+            401: "Invalid email or password",
+        },
     )
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.data.get("email")
-            password = serializer.data.get("password")
-            user = authenticate(email=email, password=password)
+            email = serializer.validated_data.get("email")
+            password = serializer.validated_data.get("password")
+            user = authenticate(request, email=email, password=password)
             if user:
+                # User authenticated successfully
                 serializer = UserSerializer(user)
-                return Response(serializer.data)
+                return Response(
+                    {"result": {"success": True, "user": serializer.data}},
+                    status=status.HTTP_200_OK,
+                )
             else:
                 return Response(
-                    {"error": "Invalid email or password"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"result": {"success": False}}, status=status.HTTP_401_UNAUTHORIZED
                 )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserCreate(APIView):
-    def post(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(
+                {"result": {"success": False, "errors": serializer.errors}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
