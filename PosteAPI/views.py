@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from .models import User
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer
@@ -14,39 +15,58 @@ from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializ
 
 class UserAPI(APIView):
     @swagger_auto_schema(
+        operation_description="Returns a list of all users",
         responses={
             200: UserSerializer(many=True),
             400: "Bad Request",
         },
     )
     def get(self, request):
+        """
+        Returns a list of all users
+        """
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(
+        operation_description="Creates a new user.",
         request_body=UserCreateSerializer,
         responses={
-            200: UserSerializer(many=False),
-            400: "Bad Request",
+            201: openapi.Response(
+                description="The created user object.", schema=UserSerializer
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                examples={
+                    "application/json": {
+                        "email": [
+                            "Email is not valid",
+                            "Email already in use",
+                            "Email cannot be blank",
+                        ],
+                        "password": ["Password cannot be blank"],
+                        "name": ["Name cannot be blank"],
+                    }
+                },
+            ),
         },
     )
     def post(self, request):
+        """
+        Creates a new user
+        """
         serializer = UserCreateSerializer(data=request.data)
         if serializer.is_valid():
-            user = User.objects.create_user(
-                username=serializer.validated_data["username"],
-                email=serializer.validated_data["email"],
-                password=serializer.validated_data["password"],
-            )
+            user = serializer.save()
             response = Response(
                 UserSerializer(user).data, status=status.HTTP_201_CREATED
             )
             print(response)
             return response
         else:
-            print(serializer.errors)
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # error message contained in response.data
             print(response)
             return response
 
@@ -70,11 +90,40 @@ class UserDetail(APIView):
 
 class UserLogin(APIView):
     @swagger_auto_schema(
+        operation_description="This endpoint allows a user to log in by using their email and password.",
         request_body=UserLoginSerializer,
         responses={
-            200: UserSerializer(many=False),
-            400: "Bad Request",
-            401: "Invalid email or password",
+            200: openapi.Response(
+                description="Login Successful",
+                schema=UserSerializer(many=False),
+                examples={
+                    "application/json": {
+                        "result": {
+                            "success": True,
+                            "user": {
+                                "id": 1,
+                                "username": "johndoe",
+                                "email": "johndoe@example.com",
+                            },
+                        }
+                    }
+                },
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                examples={
+                    "application/json": {
+                        "result": {
+                            "success": False,
+                            "errors": {"email": ["This field is required."]},
+                        }
+                    }
+                },
+            ),
+            401: openapi.Response(
+                description="Invalid email or password",
+                examples={"application/json": {"result": {"success": False}}},
+            ),
         },
     )
     def post(self, request):
