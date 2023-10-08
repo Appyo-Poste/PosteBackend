@@ -35,7 +35,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
             first_name=first_name,
             last_name=last_name,
         )
-        print(validated_data["password"])
         user.set_password(validated_data["password"])
         user.save()
         return user

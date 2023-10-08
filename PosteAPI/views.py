@@ -62,12 +62,10 @@ class UserAPI(APIView):
             response = Response(
                 UserSerializer(user).data, status=status.HTTP_201_CREATED
             )
-            print(response)
             return response
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
-            print(response)
             return response
 
 
