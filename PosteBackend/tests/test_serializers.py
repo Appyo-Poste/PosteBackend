@@ -52,13 +52,13 @@ class PostSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        folder = Folder.objects.create(title="Test Folder", creator=user)
+        folder = Folder.objects.create(title="Test Folder", creator=user, folderId=0o0001)
         data = {
             "title": "Test Post",
             "description": "Test Description",
             "url": "http://example.com",
             "creator": user.id,
-            "folder": folder.id,
+            "folder_location": folder.id,
         }
         serializer = PostSerializer(data=data)
         self.assertTrue(serializer.is_valid())
@@ -69,6 +69,6 @@ class FolderSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        data = {"title": "Test Folder", "creator": user.id}
+        data = {"title": "Test Folder", "creator": user.id, "folderId": 0o0001}
         serializer = FolderSerializer(data=data)
         self.assertTrue(serializer.is_valid())
