@@ -80,4 +80,4 @@ class PostSerializer(serializers.ModelSerializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = "__all__"
+        fields = ["folderId", "title", "creator", "shared_users", "stored_posts"]
