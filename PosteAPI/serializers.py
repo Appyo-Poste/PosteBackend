@@ -19,10 +19,23 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    # Allow the serializer to accept name, but not require it
+    name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
     class Meta:
+        """
+        Currently, the app passes 'name' as a string, but in the future we want to move
+        to passing 'first_name' and 'last_name' separately. This is a temporary solution
+        to allow both to work.
+        """
+
         model = User
-        fields = ["email", "password", "first_name", "last_name"]
-        extra_kwargs = {"password": {"write_only": True}}
+        fields = ["email", "password", "first_name", "last_name", "name"]
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "first_name": {"required": False},
+            "last_name": {"required": False},
+        }
 
     def create(self, validated_data):
         user = User(
@@ -38,10 +51,34 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         """
         Ensures that email is always lowercase before validation or creation methods
+
+        Also allows the serializer to accept 'name' as a string, but not require it
+        If a user provides "first_name" and "last_name" it will use these values, even
+        if they also provide "name".
+
+        If a user provides "name" but not "first_name" or "last_name", it will split the
+        name on the first space and use the first part as "first_name" and the rest as
+        "last_name"
+
+        This allows us to continue to accept "name" while providing room to move to
+        "first_name" and "last_name" in the future, as Django expects.
         """
         ret = super().to_internal_value(data)
         ret["email"] = ret["email"].lower()
+        if "name" in ret and not all(k in ret for k in ["first_name", "last_name"]):
+            first_name, last_name = self.split_full_name(ret["name"])
+            ret["first_name"] = first_name
+            ret["last_name"] = last_name
+
+        # Remove 'name' from the data, so it doesn't get passed to the User model
+        ret.pop("name", None)
         return ret
+
+    def validate(self, data):
+        # Ensure that first_name or name is passed
+        if not data.get("first_name") and not data.get("name"):
+            raise serializers.ValidationError("You must provide a name")
+        return data
 
     def validate_email(self, value):  # noqa
         # Check if email is taken
