@@ -39,7 +39,8 @@ class UserCreateSerializerTest(TestCase):
         data = {
             "email": "test@example.com",
             "password": "securepassword123",
-            "name": "Test User",
+            "first_name": "Test",
+            "last_name": "User",
         }
         serializer = UserCreateSerializer(data=data)
         self.assertTrue(serializer.is_valid())

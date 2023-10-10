@@ -19,21 +19,17 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(write_only=True, required=True)
-
     class Meta:
         model = User
-        fields = ["email", "password", "name"]
+        fields = ["email", "password", "first_name", "last_name"]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        name = validated_data.get("name")
-        first_name, last_name = self.split_full_name(name)
         user = User(
             email=validated_data["email"],
             username=validated_data["email"],
-            first_name=first_name,
-            last_name=last_name,
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
         )
         user.set_password(validated_data["password"])
         user.save()
