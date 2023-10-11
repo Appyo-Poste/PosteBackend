@@ -1,3 +1,5 @@
+import http
+
 from django.contrib.auth import authenticate
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -196,3 +198,43 @@ class FolderAPI(APIView):
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
             return response
+
+
+class FolderForUser(APIView):
+    def get_object(self, pk):
+        try:
+            return User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return None
+
+    def get_owned(self, user):
+        try:
+            return Folder.objects.filter(creator=user)
+        except Folder.DoesNotExist:
+            return None
+
+    def get_shared(self, user):
+        try:
+            return Folder.objects.filter(shared_users=user)
+        except Folder.DoesNotExist:
+            return None
+    def get(self, request, name):
+        user = self.get_object(name)
+
+        owned_folders = self.get_owned(user)
+        shared_folders = self.get_shared(user)
+        folders = None
+
+        if owned_folders is None and shared_folders is None:
+            return Response(
+                {"error": "User has no folders"}, status=status.HTTP_404_NOT_FOUND
+            )
+        elif owned_folders is None:
+            folders = shared_folders
+        elif shared_folders is None:
+            folders = owned_folders
+        else:
+            folders = shared_folders | owned_folders
+
+        serializer = FolderSerializer(folders, many=True)
+        return Response(serializer.data)
