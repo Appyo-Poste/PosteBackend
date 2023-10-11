@@ -57,7 +57,7 @@ class Folder(models.Model):
 
 
     def __str__(self):
-        return self.folderId
+        return self.title
 
 
 class Post(models.Model):

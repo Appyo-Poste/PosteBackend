@@ -8,7 +8,9 @@ from rest_framework.views import APIView
 from .models import User, Folder, Post
 
 # import local data
-from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
+    FolderCreateSerializer
+
 
 # Create views / viewsets here.
 
@@ -148,9 +150,28 @@ class UserLogin(APIView):
             )
 
 
-class FolderByUser(APIView):
+class FolderAPI(APIView):
+    @swagger_auto_schema(
+        operation_description="Returns a list of all folders",
+        responses={
+            200: FolderSerializer(many=True),
+            400: "Bad Request",
+        },
+    )
     def get(self, request):
         folders = Folder.objects.all()
         serializer = FolderSerializer(folders, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        serializer = FolderCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            folder = serializer.save()
+            response = Response(
+                FolderSerializer(folder).data, status=status.HTTP_201_CREATED
+            )
+            return response
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # error message contained in response.data
+            return response
