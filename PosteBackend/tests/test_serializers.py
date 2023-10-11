@@ -35,7 +35,20 @@ class UserLoginSerializerTest(TestCase):
 
 
 class UserCreateSerializerTest(TestCase):
-    def test_valid_create_serializer(self):
+    def test_valid_create_serializer_first_and_last(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "first_name": "Test",
+            "last_name": "User",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.email, "test@example.com")
+        self.assertNotEquals(user.password, "securepassword123")
+
+    def test_valid_create_serializer_name_only(self):
         data = {
             "email": "test@example.com",
             "password": "securepassword123",
@@ -44,7 +57,93 @@ class UserCreateSerializerTest(TestCase):
         serializer = UserCreateSerializer(data=data)
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
-        self.assertEqual(user.email, "test@example.com")
+        self.assertEqual(user.first_name, "Test")
+        self.assertEqual(user.last_name, "User")
+        self.assertNotEquals(user.password, "securepassword123")
+
+    def test_valid_create_serializer_name_and_first_name(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "Test User",
+            "first_name": "Something",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "Test")
+        self.assertEqual(user.last_name, "User")
+        self.assertNotEquals(user.password, "securepassword123")
+
+    def test_valid_create_serializer_name_and_last_name(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "Test User",
+            "last_name": "Something",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "Test")
+        self.assertEqual(user.last_name, "User")
+        self.assertNotEquals(user.password, "securepassword123")
+
+    def test_valid_create_serializer_all_names(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "Test User",
+            "first_name": "Something",
+            "last_name": "Else",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "Something")
+        self.assertEqual(user.last_name, "Else")
+        self.assertNotEquals(user.password, "securepassword123")
+
+    def test_serializer_fails_no_names(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_serializer_fails_last_name_only(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "last_name": "Else",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_name_without_space(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "TestUser",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "TestUser")
+        self.assertEqual(user.last_name, "")
+
+    def test_name_with_many_spaces(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "Test User Has Many Names",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "Test")
+        self.assertEqual(user.last_name, "User Has Many Names")
 
 
 class PostSerializerTest(TestCase):
