@@ -59,7 +59,7 @@ class Folder(models.Model):
 class Post(models.Model):
     title = models.CharField(max_length=100, blank=False)
     description = models.TextField(blank=True)
-    url = models.CharField(max_length=1000)
+    url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
 
