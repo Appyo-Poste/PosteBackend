@@ -17,7 +17,6 @@ class User(AbstractUser):
 
 
 class Folder(models.Model):
-    folderId = models.IntegerField(unique=True)
     title = models.CharField(max_length=100)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     shared_users = models.ManyToManyField(
@@ -29,7 +28,7 @@ class Folder(models.Model):
 
 
     def __str__(self):
-        return self.id
+        return self.folderId
 
 
 class Post(models.Model):

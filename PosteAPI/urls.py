@@ -1,6 +1,6 @@
 from django.urls import include, path, re_path
 
-from .views import UserAPI, UserDetail, UserLogin
+from .views import UserAPI, UserDetail, UserLogin, FolderByUser
 
 urlpatterns = [
     # GET to list users, POST to create a user
@@ -8,4 +8,5 @@ urlpatterns = [
     path("users/<int:pk>/", UserDetail.as_view(), name="user-detail"),
     path("login/", UserLogin.as_view(), name="user-login"),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
+    path("folder/user/", FolderByUser.as_view(), name="user-folders"),
 ]

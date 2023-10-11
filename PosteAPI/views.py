@@ -5,10 +5,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User
+from .models import User, Folder, Post
 
 # import local data
-from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer
 
 # Create views / viewsets here.
 
@@ -146,3 +146,11 @@ class UserLogin(APIView):
                 {"result": {"success": False, "errors": serializer.errors}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class FolderByUser(APIView):
+    def get(self, request):
+        folders = Folder.objects.all()
+        serializer = FolderSerializer(folders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
