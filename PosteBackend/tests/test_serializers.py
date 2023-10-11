@@ -126,14 +126,24 @@ class UserCreateSerializerTest(TestCase):
             "email": "test@example.com",
             "password": "securepassword123",
             "name": "TestUser",
-            "first_name": "TestUser",
-            "last_name": "",
         }
         serializer = UserCreateSerializer(data=data)
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
         self.assertEqual(user.first_name, "TestUser")
         self.assertEqual(user.last_name, "")
+
+    def test_name_with_many_spaces(self):
+        data = {
+            "email": "test@example.com",
+            "password": "securepassword123",
+            "name": "Test User Has Many Names",
+        }
+        serializer = UserCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.first_name, "Test")
+        self.assertEqual(user.last_name, "User Has Many Names")
 
 
 class PostSerializerTest(TestCase):
