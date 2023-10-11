@@ -3,7 +3,7 @@ from django.core.validators import validate_email
 from rest_framework import serializers
 
 # import models
-from .models import Folder, Post, User
+from .models import Folder, Post, User, FolderPermission
 
 
 # Create serializers here
@@ -113,4 +113,10 @@ class PostSerializer(serializers.ModelSerializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
+        fields = "__all__"
+
+
+class FolderPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FolderPermission
         fields = "__all__"
