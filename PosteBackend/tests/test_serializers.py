@@ -7,6 +7,7 @@ from PosteAPI.serializers import (
     UserCreateSerializer,
     UserLoginSerializer,
     UserSerializer,
+    FolderCreateSerializer,
 )
 
 
@@ -151,13 +152,13 @@ class PostSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        folder = Folder.objects.create(title="Test Folder", creator=user, folderId=0o0001)
+        folder = Folder.objects.create(title="Test Folder", creator=user)
         data = {
             "title": "Test Post",
             "description": "Test Description",
             "url": "http://example.com",
             "creator": user.id,
-            "folder_location": folder.id,
+            "folder": folder.id,
         }
         serializer = PostSerializer(data=data)
         self.assertTrue(serializer.is_valid())
@@ -168,6 +169,30 @@ class FolderSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        data = {"title": "Test Folder", "creator": user.id, "folderId": 0o0001}
+        data = {"title": "Test Folder", "creator": user.id,}
         serializer = FolderSerializer(data=data)
         self.assertTrue(serializer.is_valid())
+
+
+class FolderCreateSerializerTest(TestCase):
+    def test_valid_folder(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        data = {
+            "title": "test folder",
+            "creator": user.id,
+        }
+        serializer = FolderCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_invalid_title(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        data = {
+            "title": "",
+            "creator": user.id,
+        }
+        serializer = FolderCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())

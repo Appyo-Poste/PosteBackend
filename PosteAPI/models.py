@@ -51,10 +51,6 @@ class Folder(models.Model):
     shared_users = models.ManyToManyField(
         User, related_name="shared_folders", blank=True
     )
-    stored_posts = models.ManyToManyField(
-        'Post', related_name="folder", blank=True
-    )
-
 
     def __str__(self):
         return self.title
@@ -65,7 +61,7 @@ class Post(models.Model):
     description = models.TextField(blank=True)
     url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
-    folder_location = models.ForeignKey(Folder, on_delete=models.CASCADE)
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title

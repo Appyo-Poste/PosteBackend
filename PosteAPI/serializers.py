@@ -113,13 +113,13 @@ class PostSerializer(serializers.ModelSerializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users", "stored_posts"]
+        fields = ["title", "creator", "shared_users"]
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users", "stored_posts"]
+        fields = ["title", "creator", "shared_users"]
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},
@@ -129,15 +129,15 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             folder = Folder(
                 title = validated_data["title"],
                 creator = validated_data["creator"],
-                shared_users = validated_data["shared_users"],
-                stored_posts = validated_data["stored_posts"]
+                shared_users = validated_data["shared_users"]
             )
+            return folder
 
-        def validate(self, data):
+        def validate_title(self, value):
             # Checks if title is already in use by user
-            if Folder.objects.filter(title=data.get("title"), creator=data.get("creator")).exists():
+            if Folder.objects.filter(title=value).exists():
                 raise serializers.ValidationError("title already in use by you")
-            if data.get("title") == "":
+            if value == "":
                 raise serializers.ValidationError("title can not be blank")
 
         def validate_user(self, value):
@@ -145,9 +145,3 @@ class FolderCreateSerializer(serializers.ModelSerializer):
                 return value
             else:
                 return serializers.ValidationError("creator account does not exists")
-
-        def validate_post(self, value):
-            if Post.objects.filter(value).exists():
-                return value
-            else:
-                return serializers.ValidationError("post does not exists")

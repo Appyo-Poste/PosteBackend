@@ -163,6 +163,27 @@ class FolderAPI(APIView):
         serializer = FolderSerializer(folders, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_description="Creates a new user.",
+        request_body=FolderCreateSerializer,
+        responses={
+            201: openapi.Response(
+                description="The created user object.", schema=FolderSerializer
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                examples={
+                    "application/json": {
+                        "title": [
+                            "title already in use by you",
+                            "title cannot be blank",
+                        ],
+                        "creator": ["creator is not a valid user"],
+                    }
+                },
+            ),
+        },
+    )
     def post(self, request):
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
