@@ -166,7 +166,7 @@ class FolderAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="Creates a new user.",
+        operation_description="Creates a new folder.",
         request_body=FolderCreateSerializer,
         responses={
             201: openapi.Response(
