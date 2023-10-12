@@ -187,6 +187,10 @@ class FolderAPI(APIView):
         },
     )
     def post(self, request):
+        if Folder.objects.filter(title=request.data.title, creator=request.data.creator.id).exists():
+            response = Response({"error": "title already in use by user"}, status=status.HTTP_400_BAD_REQUEST)
+            return response
+
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
             folder = serializer.save()
@@ -208,18 +212,22 @@ class FolderForUser(APIView):
             return None
 
     def get_owned(self, user):
-        try:
+        if Folder.objects.filter(creator=user).exists():
             return Folder.objects.filter(creator=user)
-        except Folder.DoesNotExist:
+        else:
             return None
 
     def get_shared(self, user):
-        try:
+        if Folder.objects.filter(shared_users=user):
             return Folder.objects.filter(shared_users=user)
-        except Folder.DoesNotExist:
+        else:
             return None
     def get(self, request, name):
         user = self.get_object(name)
+        if user is None:
+            return Response(
+                {"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         owned_folders = self.get_owned(user)
         shared_folders = self.get_shared(user)

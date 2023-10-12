@@ -133,11 +133,11 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             )
             return folder
 
-        def validate_title(self, value):
+        def validate(self, data):
             # Checks if title is already in use by user
-            if Folder.objects.filter(title=value).exists():
+            if Folder.objects.filter(title=data.get("title"), creator=data.get("creator").id).exists():
                 raise serializers.ValidationError("title already in use by you")
-            if value == "":
+            if data.get("title") == "":
                 raise serializers.ValidationError("title can not be blank")
 
         def validate_user(self, value):
