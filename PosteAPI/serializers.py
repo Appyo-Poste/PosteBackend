@@ -1,9 +1,12 @@
+import pprint
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from rest_framework import serializers
 
 # import models
 from .models import Folder, Post, User
+import logging
 
 
 # Create serializers here
@@ -123,25 +126,13 @@ class FolderCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},
+            "shared_users" : {"required": False},
         }
 
-        def create(self, validated_data):
-            folder = Folder(
-                title = validated_data["title"],
-                creator = validated_data["creator"],
-                shared_users = validated_data["shared_users"]
-            )
-            return folder
-
-        def validate(self, data):
-            # Checks if title is already in use by user
-            if Folder.objects.filter(title=data.get("title"), creator=data.get("creator").id).exists():
-                raise serializers.ValidationError("title already in use by you")
-            if data.get("title") == "":
-                raise serializers.ValidationError("title can not be blank")
-
-        def validate_user(self, value):
-            if User.objects.filter(value).exists():
-                return value
-            else:
-                return serializers.ValidationError("creator account does not exists")
+    def create(self, validated_data):
+        folder = Folder(
+            title = validated_data["title"],
+            creator = validated_data["creator"],
+            shared_users = validated_data["shared_users"],
+        )
+        return folder
