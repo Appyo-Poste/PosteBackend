@@ -9,5 +9,5 @@ urlpatterns = [
     path("login/", UserLogin.as_view(), name="user-login"),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
     path("folders/", FolderAPI.as_view(), name="folders-list"),
-    path("folders/user/<int:name>/", FolderForUser.as_view(), name="user-folders"),
+    path("folders/user/<int:pk>/", FolderForUser.as_view(), name="user-folders"),
 ]

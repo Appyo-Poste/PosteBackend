@@ -222,8 +222,8 @@ class FolderForUser(APIView):
             return Folder.objects.filter(shared_users=user)
         else:
             return None
-    def get(self, request, name):
-        user = self.get_object(name)
+    def get(self, request, pk):
+        user = self.get_object(pk)
         if user is None:
             return Response(
                 {"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND
