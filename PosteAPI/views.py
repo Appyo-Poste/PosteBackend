@@ -177,8 +177,7 @@ class FolderAPI(APIView):
                 examples={
                     "application/json": {
                         "title": [
-                            "title already in use by you",
-                            "title cannot be blank",
+                            "title cannot be blank"
                         ],
                         "creator": ["creator is not a valid user"],
                     }
@@ -245,4 +244,4 @@ class FolderForUser(APIView):
             folders = shared_folders | owned_folders
 
         serializer = FolderSerializer(folders, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
