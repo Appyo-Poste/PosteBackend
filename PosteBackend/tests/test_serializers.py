@@ -169,7 +169,7 @@ class FolderSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        data = {"title": "Test Folder", "creator": user.id,}
+        data = {"title": "Test Folder", "creator": user.id}
         serializer = FolderSerializer(data=data)
         self.assertTrue(serializer.is_valid())
 
