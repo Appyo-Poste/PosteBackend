@@ -60,6 +60,7 @@ class User(AbstractUser):
             permission=permission
         )
 
+    # @TODO add method for updating permissions
     def unshare_folder_with_user(self, folder, user):
         if not self.can_share_folder(folder):
             raise Exception("You do not have permission to unshare this folder.")
