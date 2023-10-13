@@ -170,15 +170,13 @@ class FolderAPI(APIView):
         request_body=FolderCreateSerializer,
         responses={
             201: openapi.Response(
-                description="The created user object.", schema=FolderSerializer
+                description="The created folder object.", schema=FolderSerializer
             ),
             400: openapi.Response(
                 description="Bad Request",
                 examples={
                     "application/json": {
-                        "title": [
-                            "title cannot be blank"
-                        ],
+                        "title": ["title cannot be blank"],
                         "creator": ["creator is not a valid user"],
                     }
                 },
