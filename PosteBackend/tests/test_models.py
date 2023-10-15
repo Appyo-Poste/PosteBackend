@@ -56,7 +56,9 @@ class FolderModelTest(TestCase):
         )
 
     def test_create_folder(self):
-        folder = Folder.objects.create(title="Test Folder", creator=self.user)
+        # we have to call user.create_folder vs. creating the object directly in order to create
+        # the associated FULL_ACCESS for creator
+        folder = self.user.create_folder("Test Folder")
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         user_folder_permission = FolderPermission.objects.get(
@@ -74,22 +76,14 @@ class FolderPermissionModelTest(TestCase):
         self.user2 = User.objects.create_user(
             email="test2@example.com", username="another user", password="securepassword123"
         )
-        self.folder = Folder.objects.create(title="Test Folder", creator=self.user)
+        self.folder = self.user.create_folder("Test Folder")
 
     def test_share_and_unshare_folder(self):
         self.user.share_folder_with_user(self.folder, self.user2, FolderPermissionEnum.EDITOR)
-        user2_folder_permission = FolderPermission.objects.get(
-            user=self.user2,
-            folder=self.folder
-        )
-        self.assertEqual(user2_folder_permission.permission, FolderPermissionEnum.EDITOR)
+        self.assertTrue(self.user2.can_edit_folder(self.folder))
         self.user.unshare_folder_with_user(self.folder, self.user2)
-        user2_folder_permission = FolderPermission.objects.get(
-            user=self.user2,
-            folder=self.folder
-        )
-        self.assertEqual(user2_folder_permission.permission, None)
-
+        self.assertFalse(self.user2.can_edit_folder(self.folder))
+        
     def test_permissions_folder(self):
         self.user3 = User.objects.create_user(
             email="test3@example.com", username="yet another user", password="securepassword123"
