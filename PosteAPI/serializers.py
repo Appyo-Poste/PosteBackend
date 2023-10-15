@@ -2,6 +2,7 @@ import pprint
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.forms import URLField
 from rest_framework import serializers
 
 # import models
@@ -113,16 +114,44 @@ class PostSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class PostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = "__all__"
+        extra_kwargs = {
+            "title": {"required": True},
+            "url": {"required": True},
+        }
+
+    def create(self, validated_data):
+        post = Post(
+            title = validated_data["title"],
+            description = validated_data["description"],
+            url = validated_data["url"],
+            creator = validated_data["creator"],
+            folder = validated_data["folder"]
+        )
+        return post
+
+    def validate_url(self, value):
+        url_form_field = URLField()
+        try:
+            url = url_form_field.clean(value)
+        except ValidationError:
+            raise serializers.ValidationError("invalid url")
+        return url
+
+
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users"]
+        fields = ["title", "creator", "shared_users", "pk"]
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users"]
+        fields = ["title", "creator", "shared_users", "pk"]
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},

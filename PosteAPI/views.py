@@ -11,7 +11,7 @@ from .models import User, Folder, Post
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
-    FolderCreateSerializer
+    FolderCreateSerializer, PostCreateSerializer, PostSerializer
 
 
 # Create views / viewsets here.
@@ -184,10 +184,6 @@ class FolderAPI(APIView):
         },
     )
     def post(self, request):
-        if Folder.objects.filter(title=request.data.title, creator=request.data.creator.id).exists():
-            response = Response({"error": "title already in use by user"}, status=status.HTTP_400_BAD_REQUEST)
-            return response
-
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
             folder = serializer.save()
@@ -223,7 +219,7 @@ class FolderForUser(APIView):
         user = self.get_object(pk)
         if user is None:
             return Response(
-                {"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "User does not exist", "success": False}, status=status.HTTP_404_NOT_FOUND
             )
 
         owned_folders = self.get_owned(user)
@@ -232,7 +228,7 @@ class FolderForUser(APIView):
 
         if owned_folders is None and shared_folders is None:
             return Response(
-                {"error": "User has no folders"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "User has no folders", "success": False}, status=status.HTTP_404_NOT_FOUND
             )
         elif owned_folders is None:
             folders = shared_folders
@@ -242,4 +238,82 @@ class FolderForUser(APIView):
             folders = shared_folders | owned_folders
 
         serializer = FolderSerializer(folders, many=True)
+        return Response({"success": True,"folders": serializer.data}, status=status.HTTP_200_OK)
+
+
+class PostAPI(APIView):
+    @swagger_auto_schema(
+        operation_description="Returns a list of all posts",
+        responses={
+            200: PostSerializer(many=True),
+            400: "Bad Request",
+        },
+    )
+    def get(self, request):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Creates a new Post.",
+        request_body=FolderCreateSerializer,
+        responses={
+            201: openapi.Response(
+                description="The created Post object.", schema=PostSerializer
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                examples={
+                    "application/json": {
+                        "title": ["title cannot be blank"],
+                        "creator": ["creator is not a valid user"],
+                    }
+                },
+            ),
+        },
+    )
+    def post(self, request):
+
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            post = serializer.save()
+            response = Response(
+                FolderSerializer(post).data, status=status.HTTP_201_CREATED
+            )
+            return response
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # error message contained in response.data
+            return response
+
+
+class addPostToFolder(APIView):
+    def get_object(self, pk):
+        try:
+            return Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return None
+
+    def get_post(self, pk2):
+        try:
+            return Post.objects.get(pk=pk2)
+        except Post.DoesNotExist:
+            return None
+
+    def get(self, request, pk, pk2):
+        folder = self.get_object(pk)
+        if folder is None:
+            return Response(
+                {"error": "folder does not exist", "success": True}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        post = self.get_post(pk2)
+        if post is None:
+            return Response(
+                {"error": "post does not exist", "success": True}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        post.folder = folder
+        post.save()
+
+        return Response({"success": True}, status=status.HTTP_200_OK)

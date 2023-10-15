@@ -8,6 +8,7 @@ from PosteAPI.serializers import (
     UserLoginSerializer,
     UserSerializer,
     FolderCreateSerializer,
+    PostCreateSerializer,
 )
 
 
@@ -195,4 +196,54 @@ class FolderCreateSerializerTest(TestCase):
             "creator": user.id,
         }
         serializer = FolderCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+
+class PostCreateSerializerTest(TestCase):
+    def test_vaild_post(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_invalid_name(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_invalid_url(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
