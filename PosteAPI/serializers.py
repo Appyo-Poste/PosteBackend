@@ -1,12 +1,9 @@
-import pprint
-
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.forms import URLField
 from rest_framework import serializers
 
 # import models
-from .models import Folder, Post, User
+from .models import Folder, Post, User, FolderPermission
 
 
 # Create serializers here
@@ -162,3 +159,8 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             creator = validated_data["creator"],
         )
         return folder
+
+class FolderPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FolderPermission
+        fields = "__all__"
