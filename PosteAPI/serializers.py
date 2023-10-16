@@ -160,7 +160,7 @@ class FolderSerializer(serializers.ModelSerializer):
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "pk"]
+        fields = "__all__"
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},
