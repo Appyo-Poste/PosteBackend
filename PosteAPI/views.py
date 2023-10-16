@@ -7,11 +7,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User, Folder, Post
+from .models import User, Folder, Post, FolderPermission
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
-    FolderCreateSerializer, PostCreateSerializer, PostSerializer
+    FolderCreateSerializer, PostCreateSerializer, PostSerializer, FolderPermissionSerializer
 
 
 # Create views / viewsets here.
@@ -211,8 +211,14 @@ class FolderForUser(APIView):
             return None
 
     def get_shared(self, user):
-        if Folder.objects.filter(shared_users=user):
-            return Folder.objects.filter(shared_users=user)
+        if FolderPermission.objects.filter(user=user).exists():
+            shared = None
+            for permission in FolderPermission.objects.filter(user=user):
+                if shared is None:
+                    shared = Folder.objects.filter(pk=permission.folder.pk)
+                else:
+                 shared = shared | Folder.objects.filter(pk=permission.folder.pk)
+            return shared
         else:
             return None
     def get(self, request, pk):
@@ -274,11 +280,11 @@ class PostAPI(APIView):
     )
     def post(self, request):
 
-        serializer = PostSerializer(data=request.data)
+        serializer = PostCreateSerializer(data=request.data)
         if serializer.is_valid():
             post = serializer.save()
             response = Response(
-                FolderSerializer(post).data, status=status.HTTP_201_CREATED
+                PostSerializer(post).data, status=status.HTTP_201_CREATED
             )
             return response
         else:
@@ -304,13 +310,13 @@ class addPostToFolder(APIView):
         folder = self.get_object(pk)
         if folder is None:
             return Response(
-                {"error": "folder does not exist", "success": True}, status=status.HTTP_404_NOT_FOUND
+                {"error": "folder does not exist", "success": False}, status=status.HTTP_404_NOT_FOUND
             )
 
         post = self.get_post(pk2)
         if post is None:
             return Response(
-                {"error": "post does not exist", "success": True}, status=status.HTTP_404_NOT_FOUND
+                {"error": "post does not exist", "success": False}, status=status.HTTP_404_NOT_FOUND
             )
 
         post.folder = folder

@@ -160,7 +160,7 @@ class FolderSerializer(serializers.ModelSerializer):
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = "__all__"
+        fields = ["title", "creator"]
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},
@@ -178,3 +178,9 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             return User.objects.get(pk=value.pk)
         except User.DoesNotExist:
             return serializers.ValidationError("user does not exist")
+
+
+class FolderPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FolderPermission
+        fields = ["__all__"]
