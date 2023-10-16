@@ -121,11 +121,11 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         post = Post(
-            title = validated_data["title"],
-            description = validated_data["description"],
-            url = validated_data["url"],
-            creator = validated_data["creator"],
-            folder = validated_data["folder"]
+            title=validated_data["title"],
+            description=validated_data["description"],
+            url=validated_data["url"],
+            creator=validated_data["creator"],
+            folder=validated_data["folder"]
         )
         return post
 
@@ -155,10 +155,11 @@ class FolderCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         folder = Folder(
-            title = validated_data["title"],
-            creator = validated_data["creator"],
+            title=validated_data["title"],
+            creator=validated_data["creator"],
         )
         return folder
+
 
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:
