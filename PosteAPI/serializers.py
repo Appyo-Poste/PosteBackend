@@ -180,7 +180,6 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             return serializers.ValidationError("user does not exist")
 
 
-
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FolderPermission
