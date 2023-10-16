@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.forms import URLField
 from rest_framework import serializers
 
 # import models
@@ -137,6 +138,18 @@ class PostCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("invalid url")
         return url
 
+    def validate_user(self, value):
+        try:
+            return User.objects.get(pk=value.pk)
+        except User.DoesNotExist:
+            return serializers.ValidationError("user does not exist")
+
+    def validate_folder(self, value):
+        try:
+            return Folder.objects.get(pk=value.pk)
+        except Folder.DoesNotExist:
+            return serializers.ValidationError("folder does not exist")
+
 
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -159,6 +172,13 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             creator=validated_data["creator"],
         )
         return folder
+
+    def validate_user(self, value):
+        try:
+            return User.objects.get(pk=value.pk)
+        except User.DoesNotExist:
+            return serializers.ValidationError("user does not exist")
+
 
 
 class FolderPermissionSerializer(serializers.ModelSerializer):
