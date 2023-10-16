@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 # import models
 from .models import Folder, Post, User
-import logging
 
 
 # Create serializers here
@@ -151,17 +150,15 @@ class FolderSerializer(serializers.ModelSerializer):
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users", "pk"]
+        fields = ["title", "creator", "pk"]
         extra_kwargs = {
             "title": {"required": True},
             "creator": {"required": True},
-            "shared_users" : {"required": False},
         }
 
     def create(self, validated_data):
         folder = Folder(
             title = validated_data["title"],
             creator = validated_data["creator"],
-            shared_users = validated_data["shared_users"],
         )
         return folder
