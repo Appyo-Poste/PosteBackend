@@ -144,7 +144,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator", "shared_users", "pk"]
+        fields = ["title", "creator", "pk"]
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
