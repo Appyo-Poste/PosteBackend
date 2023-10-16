@@ -55,10 +55,26 @@ class FolderModelTest(TestCase):
             email="test@example.com", username="unused", password="securepassword123"
         )
 
-    def test_create_folder(self):
-        # we have to call user.create_folder vs. creating the object directly in order to create
-        # the associated FULL_ACCESS for creator
+    def test_create_folder_via_method(self):
+        """
+        Previously, we had to call user.create_folder vs. creating the object directly in order to create
+        the associated FULL_ACCESS for creator. This has been added to the Folder model's save method, so
+        we can now create the object directly -- either way works.
+        """
         folder = self.user.create_folder("Test Folder")
+        self.assertEqual(folder.title, "Test Folder")
+        self.assertEqual(folder.creator, self.user)
+        user_folder_permission = FolderPermission.objects.get(
+            user=self.user,
+            folder=folder
+        )
+        self.assertEqual(user_folder_permission.permission, FolderPermissionEnum.FULL_ACCESS)
+
+    def test_create_folder(self):
+        """
+        Replicates behavior of above test without user method
+        """
+        folder = Folder.objects.create(title="Test Folder", creator=self.user)
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         user_folder_permission = FolderPermission.objects.get(
@@ -83,7 +99,7 @@ class FolderPermissionModelTest(TestCase):
         self.assertTrue(self.user2.can_edit_folder(self.folder))
         self.user.unshare_folder_with_user(self.folder, self.user2)
         self.assertFalse(self.user2.can_edit_folder(self.folder))
-        
+
     def test_permissions_folder(self):
         self.user3 = User.objects.create_user(
             email="test3@example.com", username="yet another user", password="securepassword123"
@@ -109,4 +125,3 @@ class FolderPermissionModelTest(TestCase):
         self.assertTrue(self.user2.can_share_folder(self.folder))
         self.assertFalse(self.user3.can_share_folder(self.folder))
         self.assertFalse(self.user4.can_share_folder(self.folder))
-

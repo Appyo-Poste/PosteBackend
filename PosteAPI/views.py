@@ -1,19 +1,116 @@
 from django.contrib.auth import authenticate
+from django.db.models import Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import generics, permissions
+from rest_framework.authtoken.models import Token
+from rest_framework.views import APIView
 
-from .models import User
+from .models import User, Folder, FolderPermission
 
 # import local data
-from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer
+
 
 # Create views / viewsets here.
 
 
-class UserAPI(APIView):
+class LoginView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    @swagger_auto_schema(
+        operation_description="This endpoint allows a user to log in by using their email and password.",
+        request_body=UserLoginSerializer,
+        responses={
+            200: openapi.Response(
+                description="Login Successful",
+                schema=UserSerializer(many=False),
+                examples={
+                    "application/json": {
+                        "result": {
+                            "success": True,
+                            "token": "abcdefg12345678",
+                        }
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                examples={
+                    "application/json": {
+                        "result": {
+                            "success": False,
+                            "errors": {
+                                "email": ["This field is required."],
+                                "password": ["This field is required."],
+                            },
+                        }
+                    }
+                },
+            ),
+            401: openapi.Response(
+                description="Invalid email or password",
+                examples={"application/json": {"result": {"success": False}}},
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data.get("email")
+            password = serializer.validated_data.get("password")
+            user = authenticate(request, email=email, password=password)
+            if user:
+                token, created = Token.objects.get_or_create(user=user)
+                return Response(
+                    {"result": {"success": True, "token": token.key}},
+                    status=status.HTTP_200_OK,
+                )
+
+            else:
+                return Response(
+                    {"result": {"success": False}}, status=status.HTTP_401_UNAUTHORIZED
+                )
+        else:
+            return Response(
+                {"result": {"success": False, "errors": serializer.errors}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class DataView(generics.ListAPIView):
+    authentication_classes = [TokenAuthentication]
+    serializer_class = FolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
+            'folder')
+        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
+        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
+        return folders
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        context = {'request': request, 'user_permissions': self.get_user_permissions(request.user, queryset)}
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return Response(serializer.data)
+
+    def get_user_permissions(self, user, folders):
+        folder_permissions = FolderPermission.objects.filter(user=user, folder__in=folders)
+        # Create a dictionary with folder IDs as keys and permissions as values.
+        permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
+        return permissions_dict
+
+class UsersView(APIView):
+    authentication_classes = []
+    permission_classes = []
     @swagger_auto_schema(
         operation_description="Returns a list of all users",
         responses={
@@ -59,14 +156,10 @@ class UserAPI(APIView):
         serializer = UserCreateSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            response = Response(
-                UserSerializer(user).data, status=status.HTTP_201_CREATED
-            )
+            response = Response(status=status.HTTP_201_CREATED)
             return response
         else:
-            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            # error message contained in response.data
-            return response
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserDetail(APIView):
@@ -84,65 +177,3 @@ class UserDetail(APIView):
             )
         serializer = UserSerializer(user)
         return Response(serializer.data)
-
-
-class UserLogin(APIView):
-    @swagger_auto_schema(
-        operation_description="This endpoint allows a user to log in by using their email and password.",
-        request_body=UserLoginSerializer,
-        responses={
-            200: openapi.Response(
-                description="Login Successful",
-                schema=UserSerializer(many=False),
-                examples={
-                    "application/json": {
-                        "result": {
-                            "success": True,
-                            "user": {
-                                "id": 1,
-                                "username": "johndoe",
-                                "email": "johndoe@example.com",
-                            },
-                        }
-                    }
-                },
-            ),
-            400: openapi.Response(
-                description="Bad Request",
-                examples={
-                    "application/json": {
-                        "result": {
-                            "success": False,
-                            "errors": {"email": ["This field is required."]},
-                        }
-                    }
-                },
-            ),
-            401: openapi.Response(
-                description="Invalid email or password",
-                examples={"application/json": {"result": {"success": False}}},
-            ),
-        },
-    )
-    def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data.get("email")
-            password = serializer.validated_data.get("password")
-            user = authenticate(request, email=email, password=password)
-            if user:
-                # User authenticated successfully
-                serializer = UserSerializer(user)
-                return Response(
-                    {"result": {"success": True, "user": serializer.data}},
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                return Response(
-                    {"result": {"success": False}}, status=status.HTTP_401_UNAUTHORIZED
-                )
-        else:
-            return Response(
-                {"result": {"success": False, "errors": serializer.errors}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )

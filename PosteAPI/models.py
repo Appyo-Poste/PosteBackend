@@ -10,11 +10,14 @@ class User(AbstractUser):
 
     def create_folder(self, title):
         folder = Folder.objects.create(title=title, creator=self)
-        FolderPermission.objects.create(
-            user=self,
-            folder=folder,
-            permission=FolderPermissionEnum.FULL_ACCESS
-        )
+        # Previously, we forced permission creation. By including a check in the save method of the Folder model,
+        # this is no longer necessary, as the permission will be created automatically.
+        if not FolderPermission.objects.filter(user=self, folder=folder).exists():
+            FolderPermission.objects.create(
+                user=self,
+                folder=folder,
+                permission=FolderPermissionEnum.FULL_ACCESS
+            )
         return folder
 
     def create_post(self, title, url, folder):
@@ -87,6 +90,20 @@ class Folder(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        """
+        If the folder is new, create a folder permission for the creator with full access if it doesn't exist.
+        Ensures that the creator always has full access to their own folders.
+        """
+        is_new = not self.pk    # Only applies to new folders (save can be called on existing folders)
+        super().save(*args, **kwargs)
+        if is_new and not FolderPermission.objects.filter(user=self.creator, folder=self).exists():
+            FolderPermission.objects.create(
+                user=self.creator,
+                folder=self,
+                permission=FolderPermissionEnum.FULL_ACCESS,
+            )
 
 
 class Post(models.Model):
