@@ -205,10 +205,7 @@ class FolderForUser(APIView):
             return None
 
     def get_owned(self, user):
-        if Folder.objects.filter(creator=user).exists():
-            return Folder.objects.filter(creator=user)
-        else:
-            return None
+        return Folder.objects.filter(creator=user)
 
     def get_shared(self, user):
         if FolderPermission.objects.filter(user=user).exists():
@@ -217,7 +214,7 @@ class FolderForUser(APIView):
                 if shared is None:
                     shared = Folder.objects.filter(pk=permission.folder.pk)
                 else:
-                 shared = shared | Folder.objects.filter(pk=permission.folder.pk)
+                    shared = shared | Folder.objects.filter(pk=permission.folder.pk)
             return shared
         else:
             return None

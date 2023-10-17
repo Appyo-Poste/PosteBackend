@@ -138,7 +138,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("invalid url")
         return url
 
-    def validate_user(self, value):
+    def validate_creator(self, value):
         try:
             return User.objects.get(pk=value.pk)
         except User.DoesNotExist:
@@ -173,7 +173,7 @@ class FolderCreateSerializer(serializers.ModelSerializer):
         )
         return folder
 
-    def validate_user(self, value):
+    def validate_creator(self, value):
         try:
             return User.objects.get(pk=value.pk)
         except User.DoesNotExist:
