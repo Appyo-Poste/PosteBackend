@@ -107,7 +107,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['title', 'description', 'url']
+        fields = ['id', 'title', 'description', 'url']
 
 
 class FolderSerializer(serializers.ModelSerializer):
@@ -117,7 +117,7 @@ class FolderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ['title', 'shared_users', 'posts', 'user_permission']
+        fields = ['id', 'title', 'shared_users', 'posts', 'user_permission']
 
     def get_user_permission(self, obj):
         user_permissions = self.context.get('user_permissions', {})
