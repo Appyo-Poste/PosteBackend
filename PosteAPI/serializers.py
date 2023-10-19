@@ -11,7 +11,7 @@ from .models import Folder, Post, User, FolderPermission
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email"]
+        fields = ["id", "email", "first_name", "last_name"]  # Username is not required for our purposes
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -108,7 +108,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = "__all__"
+        fields = ['id', 'title', 'description', 'url']
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
@@ -152,9 +152,17 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 
 class FolderSerializer(serializers.ModelSerializer):
+    posts = PostSerializer(many=True, read_only=True, source="post_set")
+    shared_users = UserSerializer(many=True, read_only=True)
+    user_permission = serializers.SerializerMethodField()
+
     class Meta:
         model = Folder
-        fields = "__all__"
+        fields = ['id', 'title', 'shared_users', 'posts', 'user_permission']
+
+    def get_user_permission(self, obj):
+        user_permissions = self.context.get('user_permissions', {})
+        return user_permissions.get(obj.id)
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
@@ -183,4 +191,4 @@ class FolderCreateSerializer(serializers.ModelSerializer):
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FolderPermission
-        fields = ["__all__"]
+        fields = "__all__"
