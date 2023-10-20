@@ -7,6 +7,8 @@ from PosteAPI.serializers import (
     UserCreateSerializer,
     UserLoginSerializer,
     UserSerializer,
+    FolderCreateSerializer,
+    PostCreateSerializer,
 )
 
 
@@ -171,3 +173,117 @@ class FolderSerializerTest(TestCase):
         data = {"title": "Test Folder", "creator": user.id}
         serializer = FolderSerializer(data=data)
         self.assertTrue(serializer.is_valid())
+
+
+class FolderCreateSerializerTest(TestCase):
+    def test_valid_folder(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        data = {
+            "title": "test folder",
+            "creator": user.id,
+        }
+        serializer = FolderCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_invalid_title(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        data = {
+            "title": "",
+            "creator": user.id,
+        }
+        serializer = FolderCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_invaild_user(self):
+        data = {
+            "title": "test",
+            "creator": 1,
+        }
+        serializer = FolderCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+
+class PostCreateSerializerTest(TestCase):
+    def test_vaild_post(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_invalid_name(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_invalid_url(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example",
+            "creator": user.id,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_invalid_user(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": 2,
+            "folder": folder.id,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_invalid_folder(self):
+        user = User.objects.create(
+            email="creator@example.com", password="securepassword123"
+        )
+        folder = Folder.objects.create(title="Test Folder", creator=user)
+        data = {
+            "title": "Test Post",
+            "description": "Test Description",
+            "url": "http://example.com",
+            "creator": user.id,
+            "folder": 2,
+        }
+
+        serializer = PostCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
