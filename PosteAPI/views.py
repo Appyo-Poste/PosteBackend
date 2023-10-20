@@ -108,6 +108,30 @@ class DataView(generics.ListAPIView):
         permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
         return permissions_dict
 
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+        folder = Folder.objects.get(['folder_id'])
+        if not user.can_share_folder(folder):
+            return Response({"detail": "You do not have permission to share this folder."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        permission, created = FolderPermission.objects.get_or_create(
+            user=User.objects.get(data['user_id']),
+            folder=folder,
+            # @TODO verify if I need to do any type casting
+            permission=data['permission']
+        )
+
+        # If the permission already exists, update it
+        if not created:
+            permission.permission = data['permission']
+            permission.save()
+
+        return Response({"detail": "Permission upsert successfully."},
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
 class UsersView(APIView):
     authentication_classes = []
     permission_classes = []
