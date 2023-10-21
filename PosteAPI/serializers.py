@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.forms import URLField
 from rest_framework import serializers
 
 # import models
@@ -110,6 +111,46 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'url']
 
 
+class PostCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = "__all__"
+        extra_kwargs = {
+            "title": {"required": True},
+            "url": {"required": True},
+        }
+
+    def create(self, validated_data):
+        post = Post(
+            title=validated_data["title"],
+            description=validated_data["description"],
+            url=validated_data["url"],
+            creator=validated_data["creator"],
+            folder=validated_data["folder"]
+        )
+        return post
+
+    def validate_url(self, value):
+        url_form_field = URLField()
+        try:
+            url = url_form_field.clean(value)
+        except ValidationError:
+            raise serializers.ValidationError("invalid url")
+        return url
+
+    def validate_creator(self, value):
+        try:
+            return User.objects.get(pk=value.pk)
+        except User.DoesNotExist:
+            return serializers.ValidationError("user does not exist")
+
+    def validate_folder(self, value):
+        try:
+            return Folder.objects.get(pk=value.pk)
+        except Folder.DoesNotExist:
+            return serializers.ValidationError("folder does not exist")
+
+
 class FolderSerializer(serializers.ModelSerializer):
     posts = PostSerializer(many=True, read_only=True, source="post_set")
     shared_users = UserSerializer(many=True, read_only=True)
@@ -122,6 +163,29 @@ class FolderSerializer(serializers.ModelSerializer):
     def get_user_permission(self, obj):
         user_permissions = self.context.get('user_permissions', {})
         return user_permissions.get(obj.id)
+
+
+class FolderCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = ["title", "creator"]
+        extra_kwargs = {
+            "title": {"required": True},
+            "creator": {"required": True},
+        }
+
+    def create(self, validated_data):
+        folder = Folder(
+            title=validated_data["title"],
+            creator=validated_data["creator"],
+        )
+        return folder
+
+    def validate_creator(self, value):
+        try:
+            return User.objects.get(pk=value.pk)
+        except User.DoesNotExist:
+            return serializers.ValidationError("user does not exist")
 
 
 class FolderPermissionSerializer(serializers.ModelSerializer):
