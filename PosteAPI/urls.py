@@ -1,8 +1,19 @@
 from django.urls import include, path
 
-from .views import UserDetail, LoginView, DataView, FolderAPI, PostAPI, addPostToFolder, deleteFolder, FolderForUser
+from .views import (
+    UserDetail,
+    LoginView,
+    DataView,
+    FolderAPI,
+    PostAPI,
+    addPostToFolder,
+    deleteFolder,
+    FolderForUser,
+    UsersView,
+)
 
 urlpatterns = [
+    path("users/", UsersView.as_view(), name="users-list"),  # GET to retrieve users, POST to create a user
     path("users/<int:pk>/", UserDetail.as_view(), name="user-detail"),
     path("login/", LoginView.as_view(), name="user-login"),  # POST to login
     path("data/", DataView.as_view(), name="user-folders"),  # GET to retrieve folders and posts to update client
