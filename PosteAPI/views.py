@@ -7,7 +7,6 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework import generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
@@ -91,6 +90,14 @@ class DataView(generics.ListAPIView):
     serializer_class = FolderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    token_param = openapi.Parameter(
+        'Authorization',
+        openapi.IN_HEADER,
+        description="The string 'Token' and the user's token. Example:'Token abcd1234",
+        type=openapi.TYPE_STRING,
+        required=True
+    )
+
     def get_queryset(self):
         user = self.request.user
         folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
@@ -98,6 +105,10 @@ class DataView(generics.ListAPIView):
         permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
         folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
         return folders
+
+    @swagger_auto_schema(manual_parameters=[token_param])
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -166,6 +177,8 @@ class UsersView(APIView):
 
 
 class UserDetail(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self, pk):
         try:
             return User.objects.get(pk=pk)
@@ -183,6 +196,8 @@ class UserDetail(APIView):
 
 
 class FolderAPI(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
     @swagger_auto_schema(
         operation_description="Returns a list of all folders",
         responses={
