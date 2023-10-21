@@ -19,8 +19,6 @@ from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializ
 
 
 # Create views / viewsets here.
-
-
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = []

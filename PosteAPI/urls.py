@@ -9,7 +9,7 @@ from .views import (
     addPostToFolder,
     deleteFolder,
     FolderForUser,
-    FolderDetail
+    FolderDetail,
     UsersView,
 )
 
