@@ -17,8 +17,6 @@ from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializ
 
 
 # Create views / viewsets here.
-
-
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -200,4 +198,21 @@ class UserDetail(APIView):
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
             )
         serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+
+class FolderDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        folder = self.get_object(pk)
+        if folder is None:
+            return Response(
+                {"error": "Folder not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = FolderSerializer(folder)
         return Response(serializer.data)
