@@ -1,6 +1,7 @@
 import http
 
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -286,10 +287,13 @@ class FolderForUser(APIView):
             folders = shared_folders | owned_folders
 
         serializer = FolderSerializer(folders, many=True)
-        return Response({"success": True,"folders": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"success": True, "folders": serializer.data}, status=status.HTTP_200_OK)
 
 
 class PostAPI(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
     @swagger_auto_schema(
         operation_description="Returns a list of all posts",
         responses={
@@ -333,6 +337,34 @@ class PostAPI(APIView):
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
             return response
+
+    def delete(self, request):
+        """
+        Delete a post.
+        :param request: Request object with post id in header
+        """
+        print(request)
+        try:
+            post_id = request.headers.get('id')
+            post = Post.objects.get(pk=post_id)
+            post.delete()
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            message = "Post does not exist"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            message = "Server error occurred while deleting post"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class addPostToFolder(APIView):
