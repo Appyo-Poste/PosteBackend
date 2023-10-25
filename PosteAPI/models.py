@@ -113,6 +113,11 @@ class Post(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
 
+    def edit(self, newTitle, newDescription, newURL):
+        self.title = newTitle
+        self.description = newDescription
+        self.url = newURL
+
     def __str__(self):
         return self.title
 

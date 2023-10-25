@@ -31,7 +31,10 @@ urlpatterns = [
     # GET to list all folders for a user
     path("folders/user/<int:pk>",FolderForUser.as_view()),
 
-    # GET to list all posts, POST to create a post, DELETE to delete a post
+    # GET to list all posts
+    # POST to create a post
+    # DELETE to delete a post
+    # PATCH to edit a post
     path("posts/", PostAPI.as_view(), name="post-lists"),
 
     # GET to add a post to a folder (should refactor to POST)
