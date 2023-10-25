@@ -351,7 +351,6 @@ class PostAPI(APIView):
             post = Post.objects.get(pk=post_id)
             data = json.loads(request.body.decode('utf-8'))
             post.edit(data.get('title'),data.get('description'),data.get('url'))
-            post.save()
             return Response({"success": True}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             message = "Post does not exist"
