@@ -1,4 +1,5 @@
 import http
+import json
 
 from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist
@@ -345,13 +346,41 @@ class PostAPI(APIView):
 
 
 class DeletePostView(APIView):
+    def patch(self, request):
+        """
+        Edits a post in the server
+        :param request: Request object with post id and auth in header
+                        Request Body contains new title, description and url
+        """
+        #print(request)
+        try:
+            post_id = request.headers.get('id')
+            post = Post.objects.get(pk=post_id)
+            data = json.loads(request.body.decode('utf-8'))
+            post.edit(data.get('title'),data.get('description'),data.get('url'))
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            message = "Post does not exist"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            message = "Server error occurred while deleting post"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
     def delete(self, request, id):
         """
         Delete a post.
         :param request: Request object with post id in header
         """
-        print(request)
-
         try:
             post = Post.objects.get(id=id)
             post.delete()
