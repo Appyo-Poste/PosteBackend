@@ -9,7 +9,7 @@ from .views import (
     addPostToFolder,
     deleteFolder,
     FolderForUser,
-    UsersView,
+    UsersView, IndividualPostView,
 )
 
 urlpatterns = [
@@ -33,9 +33,11 @@ urlpatterns = [
 
     # GET to list all posts
     # POST to create a post
-    # DELETE to delete a post
     # PATCH to edit a post
     path("posts/", PostAPI.as_view(), name="post-lists"),
+
+    # DELETE to delete a post
+    path("posts/<int:id>/", IndividualPostView.as_view(), name="post-detail"),
 
     # GET to add a post to a folder (should refactor to POST)
     path("posts/addToFolder/<int:pk>&<int:pk2>", addPostToFolder.as_view(), name="add a post to a folder"),

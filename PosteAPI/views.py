@@ -124,9 +124,11 @@ class DataView(generics.ListAPIView):
         permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
         return permissions_dict
 
+
 class UsersView(APIView):
     authentication_classes = []
     permission_classes = []
+
     @swagger_auto_schema(
         operation_description="Returns a list of all users",
         responses={
@@ -181,6 +183,7 @@ class UsersView(APIView):
 class UserDetail(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self, pk):
         try:
             return User.objects.get(pk=pk)
@@ -200,6 +203,7 @@ class UserDetail(APIView):
 class FolderAPI(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     @swagger_auto_schema(
         operation_description="Returns a list of all folders",
         responses={
@@ -265,6 +269,7 @@ class FolderForUser(APIView):
             return shared
         else:
             return None
+
     def get(self, request, pk):
         user = self.get_object(pk)
         if user is None:
@@ -345,12 +350,12 @@ class PostAPI(APIView):
         :param request: Request object with post id and auth in header
                         Request Body contains new title, description and url
         """
-        #print(request)
+        # print(request)
         try:
             post_id = request.headers.get('id')
             post = Post.objects.get(pk=post_id)
             data = json.loads(request.body.decode('utf-8'))
-            post.edit(data.get('title'),data.get('description'),data.get('url'))
+            post.edit(data.get('title'), data.get('description'), data.get('url'))
             return Response({"success": True}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             message = "Post does not exist"
@@ -368,8 +373,6 @@ class PostAPI(APIView):
                     "post": [message]
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
-
-
 
     def delete(self, request):
         """
@@ -398,6 +401,42 @@ class PostAPI(APIView):
                     "post": [message]
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class IndividualPostView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, id):
+        """
+        Delete a post
+        :param request: Request object
+        :param id: Post id as path parameter
+        """
+        try:
+            post = Post.objects.get(pk=id)
+        except Post.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errors": {
+                        "post": ["Specified post does not exist"]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response(
+                {
+                    "success": False,
+                    "errors": {
+                        "post": ["Server error occurred while deleting post"]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+        post.delete()
+        return Response(
+            {
+                "success": True,
+            },
+            status=status.HTTP_200_OK)
 
 
 class addPostToFolder(APIView):
