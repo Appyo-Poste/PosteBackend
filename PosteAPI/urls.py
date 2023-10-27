@@ -33,10 +33,10 @@ urlpatterns = [
 
     # GET to list all posts
     # POST to create a post
-    # PATCH to edit a post
     path("posts/", PostAPI.as_view(), name="post-lists"),
 
     # DELETE to delete a post
+    # PATCH to edit a post
     path("posts/<int:id>/", IndividualPostView.as_view(), name="post-detail"),
 
     # GET to add a post to a folder (should refactor to POST)
