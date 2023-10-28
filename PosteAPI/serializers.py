@@ -181,13 +181,6 @@ class FolderCreateSerializer(serializers.ModelSerializer):
         )
         return folder
 
-    def validate_creator(self, value):
-        try:
-            return User.objects.get(pk=value.pk)
-        except User.DoesNotExist:
-            return serializers.ValidationError("user does not exist")
-
-
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FolderPermission
