@@ -442,16 +442,23 @@ class addPostToFolder(APIView):
 
 
 class deleteFolder(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
 
-    def get(self, request, pk):
-        folder = self.get_object(pk)
-        if folder is not None:
-            folder.delete()
-            return Response({"success": True}, status=status.HTTP_200_OK)
-        else:
-            return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, pk):
+        # TODO: Check permissions
+        try:
+            folder = self.get_object(pk)
+            if folder is not None:
+                folder.delete()
+                return Response({"success": True}, status=status.HTTP_200_OK)
+            else:
+                return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
+
