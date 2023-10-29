@@ -28,6 +28,9 @@ urlpatterns = [
     # GET to list all folder, POST to create a folder
     path("folders/", FolderAPI.as_view(), name="folders-list"),
 
+    # DELETE to delete a folder
+    path("folders/<int:pk>/", deleteFolder.as_view(), name="delete a folder"),
+
     # GET to list all folders for a user
     path("folders/user/<int:pk>",FolderForUser.as_view()),
 
@@ -42,8 +45,7 @@ urlpatterns = [
     # GET to add a post to a folder (should refactor to POST)
     path("posts/addToFolder/<int:pk>&<int:pk2>", addPostToFolder.as_view(), name="add a post to a folder"),
 
-    # GET to delete a folder (should refactor to DELETE)
-    path("folders/deleteFolder/<int:pk>/", deleteFolder.as_view(), name="delete a folder"),
+
 
     # Authentication; not used in client
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),

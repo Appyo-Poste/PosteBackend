@@ -188,27 +188,15 @@ class FolderCreateSerializerTest(TestCase):
         self.assertTrue(serializer.is_valid())
 
     def test_invalid_title(self):
-        user = User.objects.create(
-            email="creator@example.com", password="securepassword123"
-        )
         data = {
             "title": "",
-            "creator": user.id,
-        }
-        serializer = FolderCreateSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-
-    def test_invaild_user(self):
-        data = {
-            "title": "test",
-            "creator": 1,
         }
         serializer = FolderCreateSerializer(data=data)
         self.assertFalse(serializer.is_valid())
 
 
 class PostCreateSerializerTest(TestCase):
-    def test_vaild_post(self):
+    def test_valid_post(self):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
@@ -217,10 +205,8 @@ class PostCreateSerializerTest(TestCase):
             "title": "Test Post",
             "description": "Test Description",
             "url": "http://example.com",
-            "creator": user.id,
-            "folder": folder.id,
+            "folder_id": folder.id,
         }
-
         serializer = PostCreateSerializer(data=data)
         self.assertTrue(serializer.is_valid())
 

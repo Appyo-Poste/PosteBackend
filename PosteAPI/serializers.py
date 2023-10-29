@@ -112,23 +112,27 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
+    folder_id = serializers.IntegerField(write_only=True)
     class Meta:
         model = Post
-        fields = "__all__"
-        extra_kwargs = {
-            "title": {"required": True},
-            "url": {"required": True},
-        }
+        fields = ["title", "description", "url", "folder_id"]
 
-    def create(self, validated_data):
-        post = Post(
-            title=validated_data["title"],
-            description=validated_data["description"],
-            url=validated_data["url"],
-            creator=validated_data["creator"],
-            folder=validated_data["folder"]
-        )
-        return post
+    def validate_description(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("description cannot be blank")
+        return value
+
+    def validate_title(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("title cannot be blank")
+        return value
+
+    def validate_folder_id(self, value):
+        try:
+            folder = Folder.objects.get(pk=value)
+        except Folder.DoesNotExist:
+            return serializers.ValidationError("folder does not exist")
+        return value
 
     def validate_url(self, value):
         url_form_field = URLField()
@@ -138,17 +142,14 @@ class PostCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("invalid url")
         return url
 
-    def validate_creator(self, value):
+    def create(self, validated_data):
+        folder_id = validated_data.pop("folder_id", None)
         try:
-            return User.objects.get(pk=value.pk)
-        except User.DoesNotExist:
-            return serializers.ValidationError("user does not exist")
-
-    def validate_folder(self, value):
-        try:
-            return Folder.objects.get(pk=value.pk)
+            folder = Folder.objects.get(pk=folder_id)
         except Folder.DoesNotExist:
-            return serializers.ValidationError("folder does not exist")
+            raise serializers.ValidationError("folder does not exist")
+        post = Post(folder=folder, **validated_data)
+        return post
 
 
 class FolderSerializer(serializers.ModelSerializer):
@@ -168,10 +169,9 @@ class FolderSerializer(serializers.ModelSerializer):
 class FolderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ["title", "creator"]
+        fields = ["title"]
         extra_kwargs = {
             "title": {"required": True},
-            "creator": {"required": True},
         }
 
     def create(self, validated_data):
@@ -180,13 +180,6 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             creator=validated_data["creator"],
         )
         return folder
-
-    def validate_creator(self, value):
-        try:
-            return User.objects.get(pk=value.pk)
-        except User.DoesNotExist:
-            return serializers.ValidationError("user does not exist")
-
 
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:

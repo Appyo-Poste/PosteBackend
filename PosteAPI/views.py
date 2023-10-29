@@ -237,11 +237,12 @@ class FolderAPI(APIView):
     def post(self, request):
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
-            folder = serializer.save()
-            response = Response(
-                FolderSerializer(folder).data, status=status.HTTP_201_CREATED
+            validated_data = serializer.validated_data
+            folder = Folder.objects.create(
+                creator=request.user,
+                **validated_data
             )
-            return response
+            return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
@@ -330,15 +331,13 @@ class PostAPI(APIView):
             ),
         },
     )
-    def post(self, request):
-
+    def post(self, request, *args, **kwargs):
         serializer = PostCreateSerializer(data=request.data)
         if serializer.is_valid():
-            post = serializer.save()
-            response = Response(
-                PostSerializer(post).data, status=status.HTTP_201_CREATED
-            )
-            return response
+            post = serializer.create(validated_data=serializer.validated_data)
+            post.creator = request.user
+            post.save()
+            return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
@@ -443,16 +442,23 @@ class addPostToFolder(APIView):
 
 
 class deleteFolder(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
 
-    def get(self, request, pk):
-        folder = self.get_object(pk)
-        if folder is not None:
-            folder.delete()
-            return Response({"success": True}, status=status.HTTP_200_OK)
-        else:
-            return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request, pk):
+        # TODO: Check permissions
+        try:
+            folder = self.get_object(pk)
+            if folder is not None:
+                folder.delete()
+                return Response({"success": True}, status=status.HTTP_200_OK)
+            else:
+                return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
+
