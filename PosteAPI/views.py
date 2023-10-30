@@ -81,11 +81,27 @@ class LoginView(APIView):
                 {"result": {"success": False, "errors": serializer.errors}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-          
+
+    @swagger_auto_schema(
+        operation_description="Updates the permissions for a folder.",
+        # @TODO add request_body
+        # request_body=,
+        responses={
+            200: openapi.Response(
+                description="The folder permission was created."
+            ),
+            201: openapi.Response(
+                description="The folder permission was updated."
+            ),
+            403: openapi.Response(
+                description="User does not have permission to update folder permissions.",
+            ),
+        },
+    )
     def update(self, request, *args, **kwargs):
         user = request.user
         data = request.data
-        folder = Folder.objects.get(['folder_id'])
+        folder = Folder.objects.get(id=data['folder_id'])
         if not user.can_share_folder(folder):
             return Response({"detail": "You do not have permission to share this folder."},
                             status=status.HTTP_403_FORBIDDEN)
