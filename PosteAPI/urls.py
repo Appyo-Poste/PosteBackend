@@ -11,19 +11,49 @@ from .views import (
     FolderForUser,
     FolderDetail,
     UsersView,
+    IndividualPostView,
 )
 
 urlpatterns = [
-    path("users/", UsersView.as_view(), name="users-list"),  # GET to retrieve users, POST to create a user
+    # GET to retrieve users, POST to create a user
+    path("users/", UsersView.as_view(), name="users-list"),
+
+    # GET to retrieve user details
     path("users/<int:pk>/", UserDetail.as_view(), name="user-detail"),
-    path("login/", LoginView.as_view(), name="user-login"),  # POST to log in
-    path("data/", DataView.as_view(), name="user-folders"),  # GET to retrieve folders and posts to update client
-    path("data/folder/", DataView.as_view(), name="folder"),  # UPDATE user permissions
-    path("data/folder/<int:pk>", FolderDetail.as_view(), name="specific-folder"),  # GET specific folder
-    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
+
+    # POST to login
+    path("login/", LoginView.as_view(), name="user-login"),
+
+    # GET to retrieve data: folders and posts to update client
+    path("data/", DataView.as_view(), name="user-folders"),
+  
+    # UPDATE user permissions
+    path("data/folder/", DataView.as_view(), name="folder"),  
+  
+    # GET specific folder
+    path("data/folder/<int:pk>", FolderDetail.as_view(), name="specific-folder"),  
+
+    # GET to list all folder, POST to create a folder
     path("folders/", FolderAPI.as_view(), name="folders-list"),
-    path("folders/user/<int:pk>", FolderForUser.as_view()),
+
+    # DELETE to delete a folder
+    path("folders/<int:pk>/", deleteFolder.as_view(), name="delete a folder"),
+
+    # GET to list all folders for a user
+    path("folders/user/<int:pk>",FolderForUser.as_view()),
+
+    # GET to list all posts
+    # POST to create a post
     path("posts/", PostAPI.as_view(), name="post-lists"),
+
+    # DELETE to delete a post
+    # PATCH to edit a post
+    path("posts/<int:id>/", IndividualPostView.as_view(), name="post-detail"),
+
+    # GET to add a post to a folder (should refactor to POST)
     path("posts/addToFolder/<int:pk>&<int:pk2>", addPostToFolder.as_view(), name="add a post to a folder"),
-    path("folders/deleteFolder/<int:pk>/", deleteFolder.as_view(), name="delete a folder"),
+
+    # Authentication; not used in client
+    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]
+

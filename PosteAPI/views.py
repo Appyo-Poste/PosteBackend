@@ -1,6 +1,8 @@
 import http
+import json
 
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -162,6 +164,7 @@ class DataView(generics.ListAPIView):
 class UsersView(APIView):
     authentication_classes = []
     permission_classes = []
+
     @swagger_auto_schema(
         operation_description="Returns a list of all users",
         responses={
@@ -216,6 +219,7 @@ class UsersView(APIView):
 class UserDetail(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self, pk):
         try:
             return User.objects.get(pk=pk)
@@ -235,6 +239,7 @@ class UserDetail(APIView):
 class FolderAPI(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     @swagger_auto_schema(
         operation_description="Returns a list of all folders",
         responses={
@@ -268,11 +273,12 @@ class FolderAPI(APIView):
     def post(self, request):
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
-            folder = serializer.save()
-            response = Response(
-                FolderSerializer(folder).data, status=status.HTTP_201_CREATED
+            validated_data = serializer.validated_data
+            folder = Folder.objects.create(
+                creator=request.user,
+                **validated_data
             )
-            return response
+            return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
@@ -300,6 +306,7 @@ class FolderForUser(APIView):
             return shared
         else:
             return None
+
     def get(self, request, pk):
         user = self.get_object(pk)
         if user is None:
@@ -327,6 +334,9 @@ class FolderForUser(APIView):
 
 
 class PostAPI(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
     @swagger_auto_schema(
         operation_description="Returns a list of all posts",
         responses={
@@ -357,19 +367,82 @@ class PostAPI(APIView):
             ),
         },
     )
-    def post(self, request):
-
+    def post(self, request, *args, **kwargs):
         serializer = PostCreateSerializer(data=request.data)
         if serializer.is_valid():
-            post = serializer.save()
-            response = Response(
-                PostSerializer(post).data, status=status.HTTP_201_CREATED
-            )
-            return response
+            post = serializer.create(validated_data=serializer.validated_data)
+            post.creator = request.user
+            post.save()
+            return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # error message contained in response.data
             return response
+
+class IndividualPostView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, id):
+        """
+        Delete a post
+        :param request: Request object
+        :param id: Post id as path parameter
+        """
+        try:
+            post = Post.objects.get(pk=id)
+        except Post.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "errors": {
+                        "post": ["Specified post does not exist"]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response(
+                {
+                    "success": False,
+                    "errors": {
+                        "post": ["Server error occurred while deleting post"]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+        post.delete()
+        return Response(
+            {
+                "success": True,
+            },
+            status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        """
+        Edits a post in the server
+        :param request: Request object with post id and auth in header
+                        Request Body contains new title, description and url
+        """
+        # print(request)
+        try:
+            post_id = request.headers.get('id')
+            post = Post.objects.get(pk=post_id)
+            data = json.loads(request.body.decode('utf-8'))
+            post.edit(data.get('title'), data.get('description'), data.get('url'))
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            message = "Post does not exist"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            message = "Server error occurred while deleting post"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class addPostToFolder(APIView):
@@ -405,11 +478,25 @@ class addPostToFolder(APIView):
 
 
 class deleteFolder(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
+          
+    def delete(self, request, pk):
+        # TODO: Check permissions
+        try:
+            folder = self.get_object(pk)
+            if folder is not None:
+                folder.delete()
+                return Response({"success": True}, status=status.HTTP_200_OK)
+            else:
+                return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)  
 
     def get(self, request, pk):
         folder = self.get_object(pk)
@@ -437,3 +524,4 @@ class FolderDetail(APIView):
             )
         serializer = FolderSerializer(folder)
         return Response(serializer.data)
+
