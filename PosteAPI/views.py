@@ -145,7 +145,7 @@ class DataView(generics.ListAPIView):
                             status=status.HTTP_403_FORBIDDEN)
 
         permission, created = FolderPermission.objects.get_or_create(
-            user=User.objects.get(data['user_id']),
+            user=self.request.user,
             folder=folder,
             # @TODO verify if I need to do any type casting
             permission=data['permission']
@@ -323,7 +323,7 @@ class FolderForUser(APIView):
             folders = shared_folders | owned_folders
 
         serializer = FolderSerializer(folders, many=True)
-        return Response({"success": True,"folders": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"success": True, "folders": serializer.data}, status=status.HTTP_200_OK)
 
 
 class PostAPI(APIView):
@@ -420,6 +420,9 @@ class deleteFolder(APIView):
             return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
           
 class FolderDetail(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
