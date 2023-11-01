@@ -82,6 +82,44 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
+class DataView(generics.ListAPIView):
+    authentication_classes = [TokenAuthentication]
+    serializer_class = FolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    token_param = openapi.Parameter(
+        'Authorization',
+        openapi.IN_HEADER,
+        description="The string 'Token' and the user's token. Example:'Token abcd1234",
+        type=openapi.TYPE_STRING,
+        required=True
+    )
+
+    def get_queryset(self):
+        user = self.request.user
+        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
+            'folder')
+        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
+        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
+        return folders
+
+    @swagger_auto_schema(manual_parameters=[token_param])
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        context = {'request': request, 'user_permissions': self.get_user_permissions(request.user, queryset)}
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return Response(serializer.data)
+
+    def get_user_permissions(self, user, folders):
+        folder_permissions = FolderPermission.objects.filter(user=user, folder__in=folders)
+        # Create a dictionary with folder IDs as keys and permissions as values.
+        permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
+        return permissions_dict
+
     @swagger_auto_schema(
         operation_description="Updates the permissions for a folder.",
         # @TODO add request_body
@@ -120,44 +158,6 @@ class LoginView(APIView):
 
         return Response({"detail": "Permission upsert successfully."},
                         status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
-
-
-class DataView(generics.ListAPIView):
-    authentication_classes = [TokenAuthentication]
-    serializer_class = FolderSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    token_param = openapi.Parameter(
-        'Authorization',
-        openapi.IN_HEADER,
-        description="The string 'Token' and the user's token. Example:'Token abcd1234",
-        type=openapi.TYPE_STRING,
-        required=True
-    )
-
-    def get_queryset(self):
-        user = self.request.user
-        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
-            'folder')
-        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
-        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
-        return folders
-
-    @swagger_auto_schema(manual_parameters=[token_param])
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        context = {'request': request, 'user_permissions': self.get_user_permissions(request.user, queryset)}
-        serializer = self.get_serializer(queryset, many=True, context=context)
-        return Response(serializer.data)
-
-    def get_user_permissions(self, user, folders):
-        folder_permissions = FolderPermission.objects.filter(user=user, folder__in=folders)
-        # Create a dictionary with folder IDs as keys and permissions as values.
-        permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
-        return permissions_dict
 
 class UsersView(APIView):
     authentication_classes = []
