@@ -7,7 +7,49 @@ This repository contains the Poste backend server application / API as a Python 
 
 ---
 
-# Installation
+# Installation & Usage
+
+## Via Docker
+
+1. Clone this repository:
+
+`git clone git@github.com:Appyo-Poste/PosteBackend.git`
+
+2. Move into repository directory:
+
+`cd PosteBackend`
+
+3. Install and run Docker for your system: 
+
+>https://www.docker.com/get-started/
+
+4. Run the application via Docker using Docker Compose. Optional Make command provided for convenience.
+
+`docker compose up --build -d` or `make up` 
+
+5. The application will be running locally:
+ 
+>http://localhost
+
+6. A default superuser account will be created with the following credentials. Use this to login:
+
+```
+username: admin@email.com
+password: admin1234
+```
+
+6. To stop the application, run the following command. Optional Make command provided for convenience.
+
+`docker compose down --remove-orphans` or `make down`
+
+7. OPTIONAL: To remove all data and start fresh, run the following command. Optional Make command provided for convenience.
+
+`docker compose down --remove-orphans --volumes` or `make clean`
+
+NOTE: This will delete all data, including the database, and will remove all folders, posts, and users. This is useful
+for development, but be mindful of what this means for you.
+
+## Locally (Deprecated - Project has moved to Postgres via Docker)
 
 1. Clone this repository:
 ```
@@ -38,7 +80,14 @@ pip install -r requirements.txt
 
 ---
 
-# Usage
+# Usage (Deprecated - Project has moved to Docker)
+
+Note: Local development is done using SQLite. In production, we will use Postgres. The database is configured in
+`PosteBackend/settings.py`. To use Postgres locally, you will need to install Postgres and configure the database
+settings accordingly. See https://www.postgresql.org/download/ for more information.
+
+In order to use the local steps below (instead of Docker), you will need to create a local database.
+
 
 ## Running the server
 
