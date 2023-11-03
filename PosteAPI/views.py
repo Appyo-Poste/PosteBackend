@@ -138,16 +138,17 @@ class DataView(generics.ListAPIView):
             ),
         },
     )
-    def update(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         user = request.user
         data = request.data
         folder = Folder.objects.get(id=data['folder_id'])
+        userToUpdate = User.objects.get(id=data['user_id'])
         if not user.can_share_folder(folder):
             return Response({"detail": "You do not have permission to share this folder."},
                             status=status.HTTP_403_FORBIDDEN)
 
         permission, created = FolderPermission.objects.get_or_create(
-            user=self.request.user,
+            user=userToUpdate,
             folder=folder,
             # @TODO verify if I need to do any type casting
             permission=data['permission']
