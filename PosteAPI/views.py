@@ -21,8 +21,6 @@ from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializ
 
 
 # Create views / viewsets here.
-
-
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -124,6 +122,45 @@ class DataView(generics.ListAPIView):
         permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
         return permissions_dict
 
+    @swagger_auto_schema(
+        operation_description="Updates the permissions for a folder.",
+        # @TODO add request_body
+        # request_body=,
+        responses={
+            200: openapi.Response(
+                description="The folder permission was created."
+            ),
+            201: openapi.Response(
+                description="The folder permission was updated."
+            ),
+            403: openapi.Response(
+                description="User does not have permission to update folder permissions.",
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        data = request.data
+        folder = Folder.objects.get(id=data['folder_id'])
+        userToUpdate = User.objects.get(id=data['user_id'])
+        if not user.can_share_folder(folder):
+            return Response({"detail": "You do not have permission to share this folder."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        permission, created = FolderPermission.objects.get_or_create(
+            user=userToUpdate,
+            folder=folder,
+            # @TODO verify if I need to do any type casting
+            permission=data['permission']
+        )
+
+        # If the permission already exists, update it
+        if not created:
+            permission.permission = data['permission']
+            permission.save()
+
+        return Response({"detail": "Permission upsert successfully."},
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 class UsersView(APIView):
     authentication_classes = []
@@ -449,7 +486,7 @@ class deleteFolder(APIView):
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
-
+          
     def delete(self, request, pk):
         # TODO: Check permissions
         try:
@@ -460,5 +497,32 @@ class deleteFolder(APIView):
             else:
                 return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)  
+
+    def get(self, request, pk):
+        folder = self.get_object(pk)
+        if folder is not None:
+            folder.delete()
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        else:
+            return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+          
+class FolderDetail(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        folder = self.get_object(pk)
+        if folder is None:
+            return Response(
+                {"error": "Folder not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = FolderSerializer(folder)
+        return Response(serializer.data)
 
