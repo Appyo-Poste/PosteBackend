@@ -125,7 +125,7 @@ class DataView(generics.ListAPIView):
     @swagger_auto_schema(
         operation_description="Updates the permissions for a folder.",
         # @TODO add request_body
-        # request_body=,
+        # request_body= folderId, email, permission
         responses={
             200: openapi.Response(
                 description="The folder permission was created."
@@ -141,8 +141,8 @@ class DataView(generics.ListAPIView):
     def post(self, request, *args, **kwargs):
         user = request.user
         data = request.data
-        folder = Folder.objects.get(id=data['folder_id'])
-        userToUpdate = User.objects.get(id=data['user_id'])
+        folder = Folder.objects.get(id=data['folderId'])
+        userToUpdate = User.objects.get(email=data['email'])
         if not user.can_share_folder(folder):
             return Response({"detail": "You do not have permission to share this folder."},
                             status=status.HTTP_403_FORBIDDEN)
