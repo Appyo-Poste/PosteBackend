@@ -104,6 +104,10 @@ class Folder(models.Model):
                 permission=FolderPermissionEnum.FULL_ACCESS,
             )
 
+    def edit(self, newTitle):
+        self.title = newTitle
+        self.save()
+
 
 class Post(models.Model):
     title = models.CharField(max_length=100, blank=False)

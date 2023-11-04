@@ -31,7 +31,8 @@ urlpatterns = [
     path("data/folder/", DataView.as_view(), name="folder"),  
   
     # GET specific folder
-    path("data/folder/<int:pk>", FolderDetail.as_view(), name="specific-folder"),  
+    # PATCH to update title for specific folder
+    path("data/folder/<int:pk>", FolderDetail.as_view(), name="specific-folder"),
 
     # GET to list all folder, POST to create a folder
     path("folders/", FolderAPI.as_view(), name="folders-list"),

@@ -526,3 +526,25 @@ class FolderDetail(APIView):
         serializer = FolderSerializer(folder)
         return Response(serializer.data)
 
+    def patch(self, request, pk):
+        try:
+            folder = self.get_object(pk)
+            folder.edit(request.data['title'])
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            message = "Folder does not exist"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            message = "Server error occurred while editing folder"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
