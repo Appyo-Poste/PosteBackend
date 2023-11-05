@@ -139,28 +139,34 @@ class DataView(generics.ListAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        user = request.user
-        data = request.data
-        folder = Folder.objects.get(id=data['folderId'])
-        userToUpdate = User.objects.get(email=data['email'])
-        if not user.can_share_folder(folder):
-            return Response({"detail": "You do not have permission to share this folder."},
-                            status=status.HTTP_403_FORBIDDEN)
+        try: # such a big try block isn't great, but helpful for debug purposes for now...
+            user = request.user
+            data = request.data
+            folder = Folder.objects.get(id=data['folderId'])
+            userToUpdate = User.objects.get(email=data['email'])
+            if not user.can_share_folder(folder):
+                return Response({"detail": "You do not have permission to share this folder."},
+                                status=status.HTTP_403_FORBIDDEN)
 
-        permission, created = FolderPermission.objects.get_or_create(
-            user=userToUpdate,
-            folder=folder,
-            # @TODO verify if I need to do any type casting
-            permission=data['permission']
-        )
+            # Update existing, or create if none exists (perms now unique by folder+user combination)
+            permission, created = FolderPermission.objects.update_or_create(
+                user=userToUpdate,
+                folder=folder,
+                defaults={'permission': data['permission']}  # define what we want to update; here, only permission
+            )
 
-        # If the permission already exists, update it
-        if not created:
-            permission.permission = data['permission']
-            permission.save()
-
-        return Response({"detail": "Permission upsert successfully."},
-                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            return Response({"detail": "Permission upserted successfully."},
+                            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        except Folder.DoesNotExist:
+            return Response({"detail": "Folder not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e) # hurray for print logging
+            return Response({"detail": "Bad request."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 class UsersView(APIView):
     authentication_classes = []

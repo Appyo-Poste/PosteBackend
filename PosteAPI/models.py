@@ -142,5 +142,8 @@ class FolderPermission(models.Model):
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
     permission = models.CharField(max_length=12, choices=FolderPermissionEnum.choices)
 
+    class Meta:
+        unique_together = ('user', 'folder')
+
     def __str__(self):
         return f"{self.user.username} has {self.permission} permission within {self.folder.title}"
