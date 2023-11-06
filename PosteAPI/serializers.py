@@ -1,10 +1,10 @@
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.db import transaction
 from django.forms import URLField
 from rest_framework import serializers
 
 # import models
-from .models import Folder, Post, User, FolderPermission
+from .models import Folder, Post, User, FolderPermission, Tag
 
 
 # Create serializers here
@@ -113,9 +113,12 @@ class PostSerializer(serializers.ModelSerializer):
 
 class PostCreateSerializer(serializers.ModelSerializer):
     folder_id = serializers.IntegerField(write_only=True)
+    # Allow tags to be blank and not required (for backwards compatibility)
+    tags = serializers.CharField(write_only=True, allow_blank=True, required=False)
+
     class Meta:
         model = Post
-        fields = ["title", "description", "url", "folder_id"]
+        fields = ["title", "description", "url", "folder_id", "tags"]
 
     def validate_description(self, value):
         if not value.strip():
@@ -142,13 +145,32 @@ class PostCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("invalid url")
         return url
 
+    def validate_tags(self, value):
+        """
+        Most input validation should be handled client-side for rapid feedback to the user
+        Still need to parse tags from a single String; tags are separated by a comma
+        "This, is, four, tags"
+        "This is one tag"
+        "This, , , is, , , four, tags" <- Empty entries are ignored
+        """
+        tags = [tag.strip() for tag in value.split(',') if tag.strip()]
+        return tags
+
     def create(self, validated_data):
         folder_id = validated_data.pop("folder_id", None)
-        try:
-            folder = Folder.objects.get(pk=folder_id)
-        except Folder.DoesNotExist:
-            raise serializers.ValidationError("folder does not exist")
-        post = Post(folder=folder, **validated_data)
+        tag_names = validated_data.pop("tags", [])
+        folder = Folder.objects.get(pk=folder_id)
+        validated_data.pop('creator', None)
+
+        with transaction.atomic():  # Useful for ensuring all db transactions happen at once
+            # user obtained from token, which uses context
+            post = Post.objects.create(folder=folder, creator=self.context['request'].user, **validated_data)
+            if tag_names:
+                tag_list = []
+                for tag_name in tag_names:
+                    tag, _ = Tag.objects.get_or_create(name=tag_name)
+                    tag_list.append(tag)
+                post.tags.set(tag_list)
         return post
 
 
@@ -180,6 +202,7 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             creator=validated_data["creator"],
         )
         return folder
+
 
 class FolderPermissionSerializer(serializers.ModelSerializer):
     class Meta:

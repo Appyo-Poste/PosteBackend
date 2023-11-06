@@ -111,6 +111,8 @@ class Post(models.Model):
     url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', blank=True, related_name='posts')
+
 
     def edit(self, newTitle, newDescription, newURL):
         self.title = newTitle
@@ -120,6 +122,13 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+class Tag(models.Model):
+    name = models.CharField(max_length=100, blank=False, unique=True)
+    # This will automatically have a reverse relationship to Posts
+
+    def __str__(self):
+        return self.name
 
 
 # why gettext_lazy?
