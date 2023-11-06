@@ -104,6 +104,10 @@ class Folder(models.Model):
                 permission=FolderPermissionEnum.FULL_ACCESS,
             )
 
+    def edit(self, newTitle):
+        self.title = newTitle
+        self.save()
+
 
 class Post(models.Model):
     title = models.CharField(max_length=100, blank=False)
@@ -137,6 +141,9 @@ class FolderPermission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
     permission = models.CharField(max_length=12, choices=FolderPermissionEnum.choices)
+
+    class Meta:
+        unique_together = ('user', 'folder')
 
     def __str__(self):
         return f"{self.user.username} has {self.permission} permission within {self.folder.title}"
