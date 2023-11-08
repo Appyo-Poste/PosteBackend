@@ -168,6 +168,7 @@ class DataView(generics.ListAPIView):
             return Response({"detail": "Bad request."},
                             status=status.HTTP_400_BAD_REQUEST)
 
+
 class UsersView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -375,16 +376,15 @@ class PostAPI(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        serializer = PostCreateSerializer(data=request.data)
+        serializer = PostCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            post = serializer.create(validated_data=serializer.validated_data)
-            post.creator = request.user
-            post.save()
+            serializer.validated_data['creator'] = request.user
+            serializer.save()
             return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            # error message contained in response.data
             return response
+
 
 class IndividualPostView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -487,12 +487,13 @@ class addPostToFolder(APIView):
 class deleteFolder(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
-          
+
     def delete(self, request, pk):
         # TODO: Check permissions
         try:
@@ -503,7 +504,7 @@ class deleteFolder(APIView):
             else:
                 return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)  
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, pk):
         folder = self.get_object(pk)
@@ -512,7 +513,8 @@ class deleteFolder(APIView):
             return Response({"success": True}, status=status.HTTP_200_OK)
         else:
             return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-          
+
+
 class FolderDetail(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
