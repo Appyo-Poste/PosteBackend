@@ -1,4 +1,7 @@
+import string
+
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy
 
@@ -130,6 +133,24 @@ class Post(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=100, blank=False, unique=True)
     # This will automatically have a reverse relationship to Posts
+
+    def save(self, *args, **kwargs):
+        """
+        Saves the Tag instance after processing the name attribute.
+
+        The name is stripped of punctuation, converted to lowercase, and any form of whitespace
+        is removed. If the name is empty after processing, a ValidationError is raised to prevent
+        saving an invalid tag.
+
+        Raises:
+            ValidationError: If the processed name is empty.
+        """
+        self.name = self.name.translate(str.maketrans('', '', string.punctuation))  # remove punctuation
+        self.name = self.name.lower()  # lowercase
+        self.name = "".join(self.name.split())  # remove all whitespace, including internal
+        if not self.name:
+            raise ValidationError("Tag name cannot be empty.")
+        return super(Tag, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name

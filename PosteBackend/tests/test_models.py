@@ -1,7 +1,9 @@
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.utils import IntegrityError
 from django.test import TestCase
 
-from PosteAPI.models import Folder, Post, User, FolderPermissionEnum, FolderPermission
+from PosteAPI.models import Folder, Post, User, FolderPermissionEnum, FolderPermission, Tag
 
 
 class UserModelTest(TestCase):
@@ -125,3 +127,122 @@ class FolderPermissionModelTest(TestCase):
         self.assertTrue(self.user2.can_share_folder(self.folder))
         self.assertFalse(self.user3.can_share_folder(self.folder))
         self.assertFalse(self.user4.can_share_folder(self.folder))
+
+class TagModelTest(TestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create_user(
+            email="test@example.com", username="unused", password="securepassword123"
+        )
+        self.folder = self.user.create_folder("Test Folder")
+
+    def test_add_tag_to_post(self):
+        # Create a post without tags
+        post = Post.objects.create(
+            title='Sample Post',
+            description='Sample description',
+            url='http://example.com',
+            creator=self.user,
+            folder=self.folder
+        )
+
+        # Create a tag and add it to the post
+        tag = Tag.objects.create(name='test')
+        post.tags.add(tag)
+        post.save()
+
+        # Retrieve the post again and confirm it has one tag
+        post_with_tag = Post.objects.get(id=post.id)
+        self.assertEqual(post_with_tag.tags.count(), 1)
+        self.assertIn(tag, post_with_tag.tags.all())
+
+    def test_tags_stored_in_lowercase(self):
+        # Create a tag with uppercase letters
+        Tag.objects.create(name='TEST')
+
+        # Check if the tag was converted to lowercase
+        tag = Tag.objects.get(name='test')
+        self.assertEqual(tag.name, 'test')
+
+        # Attempt to create another tag with the same name but different case
+        try:
+            with transaction.atomic():
+                Tag.objects.create(name='tEsT')
+            self.fail('Creating a tag with the same name but different casing did not raise an IntegrityError.')
+        except IntegrityError:
+            # This is expected, so the test should pass
+            pass
+
+        # Confirm that no additional tag has been added
+        self.assertEqual(Tag.objects.count(), 1)
+
+    def test_tag_str(self):
+        tag = Tag.objects.create(name='test')
+        self.assertEqual(str(tag), 'test')
+
+    def test_tag_unique(self):
+        Tag.objects.create(name='test')
+        with self.assertRaises(IntegrityError):
+            Tag.objects.create(name='TEST')
+
+    def test_tag_strips_whitespace(self):
+        tag = Tag.objects.create(name=' test ')
+        self.assertEqual(tag.name, 'test')
+
+    def test_empty_tag_not_created(self):
+        with self.assertRaises(ValidationError):
+            Tag.objects.create(name='')
+        with self.assertRaises(ValidationError):
+            Tag.objects.create(name=' ')
+        with self.assertRaises(ValidationError):
+            Tag.objects.create(name='  ')
+
+    def test_tag_remove_punctuation(self):
+        # Create a tag with punctuation
+        tag = Tag.objects.create(name='hello,world!')
+        self.assertEqual(tag.name, 'helloworld')
+
+    def test_tag_empty_after_punctuation_removed(self):
+        # Try to create a tag that's only punctuation, should raise ValidationError
+        with self.assertRaises(ValidationError):
+            Tag.objects.create(name='!@#$%^&*()')
+
+    def test_tag_remove_punctuation_start(self):
+        # Punctuation at the start
+        tag = Tag.objects.create(name='!start')
+        self.assertEqual(tag.name, 'start')
+
+    def test_tag_remove_punctuation_middle(self):
+        # Punctuation in the middle
+        tag = Tag.objects.create(name='mid!dle')
+        self.assertEqual(tag.name, 'middle')
+
+    def test_tag_remove_punctuation_end(self):
+        # Punctuation at the end
+        tag = Tag.objects.create(name='end!')
+        self.assertEqual(tag.name, 'end')
+
+    def test_tag_remove_various_punctuation(self):
+        # String with various types of punctuation
+        tag = Tag.objects.create(name='!various.punctuation,here;')
+        self.assertEqual(tag.name, 'variouspunctuationhere')
+
+    def test_tag_punctuation_only(self):
+        # String with punctuation only
+        with self.assertRaises(ValidationError):
+            Tag.objects.create(name='!?.')
+
+    def test_tag_punctuation_with_spaces(self):
+        # String with punctuation and spaces
+        tag = Tag.objects.create(name=' punc!tua tion ')
+        self.assertEqual(tag.name, 'punctuation')
+
+    def test_tag_unique_after_punctuation_removal(self):
+        # Ensuring uniqueness after punctuation removal
+        Tag.objects.create(name='unique-tag')
+        with self.assertRaises(IntegrityError):
+            Tag.objects.create(name='unique!tag')
+
+
+
+
+
