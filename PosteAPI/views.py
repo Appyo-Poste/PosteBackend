@@ -13,7 +13,7 @@ from rest_framework import generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
-from .models import User, Folder, Post, FolderPermission
+from .models import User, Folder, Post, FolderPermission, FolderPermissionEnum
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
@@ -100,10 +100,14 @@ class DataView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
-            'folder')
-        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
-        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
+        folders = Folder.objects.filter(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER
+            ]
+        ).distinct()
         return folders
 
     @swagger_auto_schema(manual_parameters=[token_param])
