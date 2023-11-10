@@ -148,15 +148,27 @@ class DataView(generics.ListAPIView):
                 return Response({"detail": "You do not have permission to share this folder."},
                                 status=status.HTTP_403_FORBIDDEN)
 
-            # Update existing, or create if none exists (perms now unique by folder+user combination)
-            permission, created = FolderPermission.objects.update_or_create(
-                user=userToUpdate,
-                folder=folder,
-                defaults={'permission': data['permission']}  # define what we want to update; here, only permission
-            )
+            # If permission is None, delete the permission
+            if data['permission'] == "none":
+                try:
+                    FolderPermission.objects.filter(user=userToUpdate, folder=folder).delete()
+                    return Response({"detail": "Permission deleted successfully."},
+                                    status=status.HTTP_200_OK)
+                except Exception:
+                    # This shouldn't happen (hence broad catch), but if it does, we'll just return a 400
+                    return Response({"detail": "Bad request."},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({"detail": "Permission upserted successfully."},
-                            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            else:
+                # Update existing, or create if none exists (perms now unique by folder+user combination)
+                permission, created = FolderPermission.objects.update_or_create(
+                    user=userToUpdate,
+                    folder=folder,
+                    defaults={'permission': data['permission']}  # define what we want to update; here, only permission
+                )
+
+                return Response({"detail": "Permission upserted successfully."},
+                                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
         except Folder.DoesNotExist:
             return Response({"detail": "Folder not found."},
                             status=status.HTTP_404_NOT_FOUND)
