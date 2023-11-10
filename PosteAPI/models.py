@@ -132,7 +132,7 @@ class Post(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, blank=False, unique=True)
-    # This will automatically have a reverse relationship to Posts
+    # This will automatically have a reverse relationship to Posts and Folders
 
     def save(self, *args, **kwargs):
         """
@@ -171,6 +171,7 @@ class FolderPermission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
     permission = models.CharField(max_length=12, choices=FolderPermissionEnum.choices)
+    tags = models.ManyToManyField('Tag', blank=True, related_name='folder')
 
     class Meta:
         unique_together = ('user', 'folder')
