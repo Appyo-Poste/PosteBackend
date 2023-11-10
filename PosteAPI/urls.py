@@ -3,6 +3,7 @@ from django.urls import include, path
 from .views import (
     UserDetail,
     LoginView,
+    ChangePassword,
     DataView,
     FolderAPI,
     PostAPI,
@@ -15,11 +16,15 @@ from .views import (
 )
 
 urlpatterns = [
-    # GET to retrieve users, POST to create a user
+    # GET to retrieve users
+    # POST to create a user
     path("users/", UsersView.as_view(), name="users-list"),
 
     # GET to retrieve user details
     path("users/<int:pk>/", UserDetail.as_view(), name="user-detail"),
+
+    # POST to change password
+    path("users/changepassword", ChangePassword.as_view(), name="change-password"),
 
     # POST to login
     path("login/", LoginView.as_view(), name="user-login"),

@@ -243,6 +243,52 @@ class UserDetail(APIView):
         return Response(serializer.data)
 
 
+class ChangePassword(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """
+        Edits a user's password
+        """
+        print(request.auth.key)
+        user_id = Token.objects.get(key=request.auth.key).user_id
+        user = User.objects.get(id=user_id)
+        data = json.loads(request.body.decode('utf-8'))
+        newPassword = data.get('newPassword')
+        oldPassword = data.get('oldPassword')
+        print(oldPassword)
+        print(newPassword)
+        if user.check_password(oldPassword):
+            if user.check_password(newPassword):
+                message = "New password cannot be same as old password"
+                return Response(
+                    {"result": {
+                        "success": False},
+                        "error": message
+                    }, status=status.HTTP_400_BAD_REQUEST
+                )
+            else:
+                user.set_password(newPassword)
+                user.save()
+                if hasattr(user, 'auth_token'):
+                    user.auth_token.delete()
+                token, created = Token.objects.get_or_create(user=user)
+                return Response(
+                    {"result": {"success": True, "token": token.key}},
+                    status=status.HTTP_200_OK,
+                )
+
+        else:
+            message = "Old password does not match"
+            return Response(
+                {"result": {
+                    "success": False},
+                    "error": message
+                }, status=status.HTTP_401_UNAUTHORIZED
+            )
+
+
 class FolderAPI(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -492,7 +538,7 @@ class deleteFolder(APIView):
             return Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return None
-          
+
     def delete(self, request, pk):
         # TODO: Check permissions
         try:
@@ -503,7 +549,7 @@ class deleteFolder(APIView):
             else:
                 return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)  
+            return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, pk):
         folder = self.get_object(pk)
@@ -512,7 +558,7 @@ class deleteFolder(APIView):
             return Response({"success": True}, status=status.HTTP_200_OK)
         else:
             return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-          
+
 class FolderDetail(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
