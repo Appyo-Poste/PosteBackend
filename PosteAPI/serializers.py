@@ -19,6 +19,14 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
 
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["oldPassword", "newPassword"]
+
 class UserCreateSerializer(serializers.ModelSerializer):
     # Allow the serializer to accept name, but not require it
     name = serializers.CharField(required=False, allow_blank=True, write_only=True)
@@ -113,6 +121,7 @@ class PostSerializer(serializers.ModelSerializer):
 
 class PostCreateSerializer(serializers.ModelSerializer):
     folder_id = serializers.IntegerField(write_only=True)
+
     # Allow tags to be blank and not required (for backwards compatibility)
     tags = serializers.CharField(write_only=True, allow_blank=True, required=False)
 
