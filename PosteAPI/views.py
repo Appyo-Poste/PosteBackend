@@ -464,16 +464,14 @@ class IndividualPostView(APIView):
             },
             status=status.HTTP_200_OK)
 
-    def patch(self, request):
+    def patch(self, request, id):
         """
         Edits a post in the server
         :param request: Request object with post id and auth in header
                         Request Body contains new title, description and url
         """
-        # print(request)
         try:
-            post_id = request.headers.get('id')
-            post = Post.objects.get(pk=post_id)
+            post = Post.objects.get(pk=id)
             data = json.loads(request.body.decode('utf-8'))
             post.edit(data.get('title'), data.get('description'), data.get('url'))
             return Response({"success": True}, status=status.HTTP_200_OK)
