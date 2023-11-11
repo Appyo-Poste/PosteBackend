@@ -23,7 +23,7 @@ urlpatterns = [
     # GET to retrieve user details
     path("users/<int:pk>/", UserDetail.as_view(), name="user-detail"),
 
-    # POST to change password
+    # POST to change user's password
     path("users/changepassword", ChangePassword.as_view(), name="change-password"),
 
     # POST to login
