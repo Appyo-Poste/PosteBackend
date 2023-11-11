@@ -13,7 +13,7 @@ from rest_framework import generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
-from .models import User, Folder, Post, FolderPermission
+from .models import User, Folder, Post, FolderPermission, FolderPermissionEnum
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
@@ -21,8 +21,6 @@ from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializ
 
 
 # Create views / viewsets here.
-
-
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -102,10 +100,14 @@ class DataView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
-            'folder')
-        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
-        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
+        folders = Folder.objects.filter(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER
+            ]
+        ).distinct()
         return folders
 
     @swagger_auto_schema(manual_parameters=[token_param])
@@ -123,6 +125,64 @@ class DataView(generics.ListAPIView):
         # Create a dictionary with folder IDs as keys and permissions as values.
         permissions_dict = {perm.folder_id: perm.permission for perm in folder_permissions}
         return permissions_dict
+
+    @swagger_auto_schema(
+        operation_description="Updates the permissions for a folder.",
+        # @TODO add request_body
+        # request_body= folderId, email, permission
+        responses={
+            200: openapi.Response(
+                description="The folder permission was created."
+            ),
+            201: openapi.Response(
+                description="The folder permission was updated."
+            ),
+            403: openapi.Response(
+                description="User does not have permission to update folder permissions.",
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        try: # such a big try block isn't great, but helpful for debug purposes for now...
+            user = request.user
+            data = request.data
+            folder = Folder.objects.get(id=data['folderId'])
+            userToUpdate = User.objects.get(email=data['email'])
+            if not user.can_share_folder(folder):
+                return Response({"detail": "You do not have permission to share this folder."},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # If permission is None, delete the permission
+            if data['permission'] == "none":
+                try:
+                    FolderPermission.objects.filter(user=userToUpdate, folder=folder).delete()
+                    return Response({"detail": "Permission deleted successfully."},
+                                    status=status.HTTP_200_OK)
+                except Exception:
+                    # This shouldn't happen (hence broad catch), but if it does, we'll just return a 400
+                    return Response({"detail": "Bad request."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+            else:
+                # Update existing, or create if none exists (perms now unique by folder+user combination)
+                permission, created = FolderPermission.objects.update_or_create(
+                    user=userToUpdate,
+                    folder=folder,
+                    defaults={'permission': data['permission']}  # define what we want to update; here, only permission
+                )
+
+                return Response({"detail": "Permission upserted successfully."},
+                                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        except Folder.DoesNotExist:
+            return Response({"detail": "Folder not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."},
+                            status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e) # hurray for print logging
+            return Response({"detail": "Bad request."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class UsersView(APIView):
@@ -198,6 +258,49 @@ class UserDetail(APIView):
             )
         serializer = UserSerializer(user)
         return Response(serializer.data)
+
+
+class ChangePassword(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """
+        Edits a user's password
+        """
+        user_id = Token.objects.get(key=request.auth.key).user_id
+        user = User.objects.get(id=user_id)
+        data = json.loads(request.body.decode('utf-8'))
+        newPassword = data.get('newPassword')
+        oldPassword = data.get('oldPassword')
+        if user.check_password(oldPassword):
+            if user.check_password(newPassword):
+                message = "New password cannot be same as old password"
+                return Response(
+                    {"result": {
+                        "success": False},
+                        "error": message
+                    }, status=status.HTTP_400_BAD_REQUEST
+                )
+            else:
+                user.set_password(newPassword)
+                user.save()
+                if hasattr(user, 'auth_token'):
+                    user.auth_token.delete()
+                token, created = Token.objects.get_or_create(user=user)
+                return Response(
+                    {"result": {"success": True, "token": token.key}},
+                    status=status.HTTP_200_OK,
+                )
+
+        else:
+            message = "Old password does not match"
+            return Response(
+                {"result": {
+                    "success": False},
+                    "error": message
+                }, status=status.HTTP_401_UNAUTHORIZED
+            )
 
 
 class FolderAPI(APIView):
@@ -332,16 +435,15 @@ class PostAPI(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        serializer = PostCreateSerializer(data=request.data)
+        serializer = PostCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            post = serializer.create(validated_data=serializer.validated_data)
-            post.creator = request.user
-            post.save()
+            serializer.validated_data['creator'] = request.user
+            serializer.save()
             return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            # error message contained in response.data
             return response
+
 
 class IndividualPostView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -378,16 +480,14 @@ class IndividualPostView(APIView):
             },
             status=status.HTTP_200_OK)
 
-    def patch(self, request):
+    def patch(self, request, id):
         """
         Edits a post in the server
         :param request: Request object with post id and auth in header
                         Request Body contains new title, description and url
         """
-        # print(request)
         try:
-            post_id = request.headers.get('id')
-            post = Post.objects.get(pk=post_id)
+            post = Post.objects.get(pk=id)
             data = json.loads(request.body.decode('utf-8'))
             post.edit(data.get('title'), data.get('description'), data.get('url'))
             return Response({"success": True}, status=status.HTTP_200_OK)
@@ -444,6 +544,7 @@ class addPostToFolder(APIView):
 class deleteFolder(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
@@ -461,4 +562,55 @@ class deleteFolder(APIView):
                 return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
             return Response({"success": False, "Error": "Bad request."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, pk):
+        folder = self.get_object(pk)
+        if folder is not None:
+            folder.delete()
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        else:
+            return Response({"success": False, "Error": "folder does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class FolderDetail(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        folder = self.get_object(pk)
+        if folder is None:
+            return Response(
+                {"error": "Folder not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = FolderSerializer(folder)
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        try:
+            folder = self.get_object(pk)
+            folder.edit(request.data['title'])
+            return Response({"success": True}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            message = "Folder does not exist"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            message = "Server error occurred while editing folder"
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
 
