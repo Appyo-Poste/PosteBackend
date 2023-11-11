@@ -13,7 +13,7 @@ from rest_framework import generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
-from .models import User, Folder, Post, FolderPermission
+from .models import User, Folder, Post, FolderPermission, FolderPermissionEnum
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
@@ -100,10 +100,14 @@ class DataView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        folder_permissions = FolderPermission.objects.filter(user=user).exclude(permission__isnull=True).select_related(
-            'folder')
-        permitted_folders_ids = [perm.folder.id for perm in folder_permissions]
-        folders = Folder.objects.filter(Q(creator=user) | Q(id__in=permitted_folders_ids)).distinct()
+        folders = Folder.objects.filter(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER
+            ]
+        ).distinct()
         return folders
 
     @swagger_auto_schema(manual_parameters=[token_param])
@@ -148,15 +152,27 @@ class DataView(generics.ListAPIView):
                 return Response({"detail": "You do not have permission to share this folder."},
                                 status=status.HTTP_403_FORBIDDEN)
 
-            # Update existing, or create if none exists (perms now unique by folder+user combination)
-            permission, created = FolderPermission.objects.update_or_create(
-                user=userToUpdate,
-                folder=folder,
-                defaults={'permission': data['permission']}  # define what we want to update; here, only permission
-            )
+            # If permission is None, delete the permission
+            if data['permission'] == "none":
+                try:
+                    FolderPermission.objects.filter(user=userToUpdate, folder=folder).delete()
+                    return Response({"detail": "Permission deleted successfully."},
+                                    status=status.HTTP_200_OK)
+                except Exception:
+                    # This shouldn't happen (hence broad catch), but if it does, we'll just return a 400
+                    return Response({"detail": "Bad request."},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({"detail": "Permission upserted successfully."},
-                            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            else:
+                # Update existing, or create if none exists (perms now unique by folder+user combination)
+                permission, created = FolderPermission.objects.update_or_create(
+                    user=userToUpdate,
+                    folder=folder,
+                    defaults={'permission': data['permission']}  # define what we want to update; here, only permission
+                )
+
+                return Response({"detail": "Permission upserted successfully."},
+                                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
         except Folder.DoesNotExist:
             return Response({"detail": "Folder not found."},
                             status=status.HTTP_404_NOT_FOUND)
