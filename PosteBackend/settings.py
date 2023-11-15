@@ -88,7 +88,16 @@ WSGI_APPLICATION = "PosteBackend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
+# If running locally via `runserver`, sqlite will be used
+localdb = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
+
+# If running via Docker Compose, Postgres may be used (see docker-compose.yml and DATABASES env var)
+dockerdb = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DATABASE_NAME', 'postgres'),
@@ -98,6 +107,8 @@ DATABASES = {
         'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
+
+DATABASES = os.environ.get('DATABASE_SETTING', localdb)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
