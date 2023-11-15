@@ -6,9 +6,9 @@ services:
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: postgres
+      DATABASE_USER: posteadmin
+      DATABASE_PASSWORD: topsecretpassword
+      DATABASE_NAME: poste
       DJANGO_USER: admin@email.com
       DJANGO_EMAIL: admin@email.com
       DJANGO_PASSWORD: admin1234
@@ -23,11 +23,11 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: posteadmin
+      POSTGRES_PASSWORD: topsecretpassword
+      POSTGRES_DB: poste
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "posteadmin", "-d", "poste"]
       interval: 5s
       timeout: 5s
       retries: 5
