@@ -9,8 +9,6 @@ This repository contains the Poste backend server application / API as a Python 
 
 # Installation & Usage
 
-## Via Docker
-
 1. Clone this repository:
 
 `git clone git@github.com:Appyo-Poste/PosteBackend.git`
@@ -23,7 +21,7 @@ This repository contains the Poste backend server application / API as a Python 
 
 >https://www.docker.com/get-started/
 
-4. Run the application via Docker using Docker Compose. Optional Make command provided for convenience.
+4. Run the application via Docker using Docker Compose. Optional Make target provided for convenience.
 
 `docker compose up --build -d` or `make up` 
 
@@ -49,7 +47,12 @@ password: admin1234
 NOTE: This will delete all data, including the database, and will remove all folders, posts, and users. This is useful
 for development, but be mindful of what this means for you.
 
-## Locally (Deprecated - Project has moved to Postgres via Docker)
+## Locally (without Docker)
+
+You can also run this Project locally via Django's built-in development server. This is not recommended for production,
+but is useful for development and testing. This will use an SQLite database rather than a Postgres database.
+
+Please note that any changes made to one environment (Docker or local) will not be reflected in the other environment.
 
 1. Clone this repository:
 ```
@@ -78,30 +81,16 @@ cd PosteBackend
 pip install -r requirements.txt
 ```
 
----
-
-# Usage (Deprecated - Project has moved to Docker)
-
-Note: Local development is done using SQLite. In production, we will use Postgres. The database is configured in
-`PosteBackend/settings.py`. To use Postgres locally, you will need to install Postgres and configure the database
-settings accordingly. See https://www.postgresql.org/download/ for more information.
-
-In order to use the local steps below (instead of Docker), you will need to create a local database.
-
-
-## Running the server
-
-To run the server, first ensure you have activated the virtual environment, as shown in #4 above. Then, run:
+6. Run the application via Django's built-in development server.
 
 ```
 python manage.py runserver
 ```
 
-This will start the server at `http://localhost:8000/`.
+7. The application will be running locally:
+>http://localhost:8000
 
-NOTE: Android Studio emulates a device which does not have access to localhost. While we can still use `localhost` via
-Django, the URL must be set to `10.2.0.0` in the Poste Android Studio project for the emulator to be able to access the
-server.
+---
 
 ## Running tests
 
