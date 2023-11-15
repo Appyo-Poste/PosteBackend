@@ -108,7 +108,10 @@ dockerdb = {
     }
 }
 
-DATABASES = os.environ.get('DATABASE_SETTING', localdb)
+if os.environ.get('DATABASE_SETTING') == 'docker':
+    DATABASES = dockerdb
+else:
+    DATABASES = localdb
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

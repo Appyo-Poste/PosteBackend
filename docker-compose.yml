@@ -4,7 +4,7 @@ services:
   poste:
     build: .
     environment:
-      DATABASE_SETTING: dockerdb
+      DATABASE_SETTING: docker
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: posteadmin
