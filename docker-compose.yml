@@ -10,10 +10,10 @@ services:
       DATABASE_USER: posteadmin
       DATABASE_PASSWORD: topsecretpassword
       DATABASE_NAME: poste
-      DJANGO_USER: admin@email.com
-      DJANGO_EMAIL: admin@email.com
-      DJANGO_PASSWORD: admin1234
       DJANGO_SETTINGS_MODULE: PosteBackend.settings
+      DJANGO_SUPERUSER_PASSWORD: admin1234
+      DJANGO_SUPERUSER_USERNAME: admin@email.com
+      DJANGO_SUPERUSER_EMAIL: admin@email.com
     volumes:
         - static_volume:/usr/src/app/static
         - media_volume:/usr/src/app/media
