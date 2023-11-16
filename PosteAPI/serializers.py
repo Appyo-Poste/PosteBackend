@@ -106,9 +106,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
+    tags = serializers.SerializerMethodField()
+
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'url']
+        fields = ['id', 'title', 'description', 'url', 'tags']
+
+    def get_tags(self, obj):
+        return [tag.name for tag in obj.tags.all()]
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
