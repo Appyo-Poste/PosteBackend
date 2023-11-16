@@ -120,6 +120,22 @@ python manage.py test
 ```
 
 ---
+# SSL and Certs
+
+In order to use HTTPS, we need to generate a certificate and key. 
+
+To generate a self-signed certificate and key, run the following command:
+```
+openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes
+```
+
+This will generate a certificate and key, which can be used to enable HTTPS. These files should not be committed to
+version control, and should be kept secret. As a result, they are not included in this repository.
+They will also need to be used in the frontend application, which is not included in this repository.
+
+As a result, this repository should not be committed to the main branch until we are ready to solely use HTTPS.
+
+---
 
 # Models and Migrations
 
