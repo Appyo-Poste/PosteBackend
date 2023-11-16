@@ -89,6 +89,7 @@ class User(AbstractUser):
 class Folder(models.Model):
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', blank=True, related_name='folder')
 
     def __str__(self):
         return self.title
@@ -171,7 +172,6 @@ class FolderPermission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
     permission = models.CharField(max_length=12, choices=FolderPermissionEnum.choices)
-    tags = models.ManyToManyField('Tag', blank=True, related_name='folder')
 
     class Meta:
         unique_together = ('user', 'folder')

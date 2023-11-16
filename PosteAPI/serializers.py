@@ -194,7 +194,6 @@ class FolderSerializer(serializers.ModelSerializer):
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
-    # Allow tags to be blank and not required (for backwards compatibility)
     tags = serializers.CharField(write_only=True, allow_blank=True, required=False)
 
     class Meta:
@@ -210,18 +209,10 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             return value
 
         def validate_tags(self, value):
-            """
-            Most input validation should be handled client-side for rapid feedback to the user
-            Still need to parse tags from a single String; tags are separated by a comma
-            "This, is, four, tags"
-            "This is one tag"
-            "This, , , is, , , four, tags" <- Empty entries are ignored
-            """
             tags = [tag.strip() for tag in value.split(',') if tag.strip()]
             return tags
 
     def create(self, validated_data):
-        # title = validated_data.pop("")
         tag_names = validated_data.pop("tags", [])
 
         folder = Folder(
