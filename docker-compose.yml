@@ -43,7 +43,6 @@ services:
     ports:
       - "80:80" # allows external access via port 80 (HTTP port)
       - "443:443" # allows external access via port 443 (HTTPS port)
-      - "8000:80" # forwards existing requests on port 8000 to port 80 (app port - will be deprecated)
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/usr/share/nginx/html/static
