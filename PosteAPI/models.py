@@ -89,6 +89,7 @@ class User(AbstractUser):
 class Folder(models.Model):
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', blank=True, related_name='folder')
 
     def __str__(self):
         return self.title
@@ -132,7 +133,7 @@ class Post(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, blank=False, unique=True)
-    # This will automatically have a reverse relationship to Posts
+    # This will automatically have a reverse relationship to Posts and Folders
 
     def save(self, *args, **kwargs):
         """
