@@ -15,4 +15,6 @@ RUN apt-get remove -y libpq-dev gcc && apt-get autoremove -y
 
 RUN python manage.py collectstatic --noinput
 
+RUN chmod +x /usr/src/app/deploy/entrypoint.sh
+
 ENTRYPOINT ["/usr/src/app/deploy/entrypoint.sh"]
