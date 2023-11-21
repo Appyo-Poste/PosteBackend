@@ -126,7 +126,7 @@ In order to use HTTPS, we need to generate a certificate and key.
 
 To generate a self-signed certificate and key, run the following command:
 ```
-openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes
+openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes -addext "subjectAltName = IP.1:10.0.2.2"
 ```
 
 This will generate a certificate and key, which can be used to enable HTTPS. These files should not be committed to
