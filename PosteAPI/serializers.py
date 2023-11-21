@@ -4,7 +4,7 @@ from django.forms import URLField
 from rest_framework import serializers
 
 # import models
-from .models import Folder, FolderPermission, Post, Tag, User
+from .models import Folder, Post, Tag, User
 
 
 # Create serializers here
@@ -249,9 +249,3 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             folder.tags.set(tag_list)
 
         return folder
-
-
-class FolderPermissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FolderPermission
-        fields = "__all__"

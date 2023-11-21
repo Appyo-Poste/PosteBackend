@@ -12,12 +12,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Folder, FolderPermission, FolderPermissionEnum, Post, User
+from .models import Folder, FolderPermissionEnum, Post, Share, User
 
 # import local data
 from .serializers import (
     FolderCreateSerializer,
-    FolderPermissionSerializer,
     FolderSerializer,
     PostCreateSerializer,
     PostSerializer,
@@ -92,6 +91,27 @@ class LoginView(APIView):
             )
 
 
+def get_permission_level(permission):
+    levels = {
+        None: 0,
+        FolderPermissionEnum.VIEWER: 1,
+        FolderPermissionEnum.EDITOR: 2,
+        FolderPermissionEnum.FULL_ACCESS: 3,
+    }
+    return levels.get(permission, 0)
+
+
+def get_highest_permission(user, folder):
+    highest_permission = None
+    shares = Share.objects.filter(target=user, folder=folder)
+    for share in shares:
+        permission = share.permission
+        if get_permission_level(permission) > get_permission_level(highest_permission):
+            highest_permission = permission
+
+    return highest_permission
+
+
 class DataView(generics.ListAPIView):
     authentication_classes = [TokenAuthentication]
     serializer_class = FolderSerializer
@@ -108,12 +128,11 @@ class DataView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         folders = Folder.objects.filter(
-            folderpermission__user=user,
-            folderpermission__permission__in=[
-                FolderPermissionEnum.FULL_ACCESS,
-                FolderPermissionEnum.EDITOR,
-                FolderPermissionEnum.VIEWER,
-            ],
+            Q(creator=user)
+            | Q(  # Folders owned by the user
+                share__target=user, share__permission__isnull=False
+            )
+            # Folders shared with the user with a valid permission
         ).distinct()
         return folders
 
@@ -146,30 +165,15 @@ class DataView(generics.ListAPIView):
         Key:   folder_id
         Value: list of user emails
         """
-        # find all folders where the request_user has FULL_ACCESS
-        my_folders = FolderPermission.objects.filter(
-            user=request_user,
-            permission=FolderPermissionEnum.FULL_ACCESS,
-            folder__in=folders,
-        ).values_list("folder_id", flat=True)
-
-        # get all FolderPermissions for those folders, regardless of the permission level
-        all_permissions = FolderPermission.objects.filter(folder_id__in=my_folders)
-
-        # build dictionary with folder_ids as keys and lists of user emails as values
-        shared_users_dict = {}
-        for perm in all_permissions:
-            # skip if the user is the request_user
-            if perm.user == request_user:
-                continue
-
-            folder_id = perm.folder_id
-            if folder_id not in shared_users_dict:
-                shared_users_dict[folder_id] = []
-            if perm.user.email not in shared_users_dict[folder_id]:
-                shared_users_dict[folder_id].append(perm.user.email)
-
-        return shared_users_dict
+        shared_user_dict = {}
+        for folder in folders:
+            shared = (
+                Share.objects.filter(source=request_user, folder=folder)
+                .exclude(target=request_user)
+                .values_list("target__email", flat=True)
+            )
+            shared_user_dict[folder.id] = list(set(list(shared)))
+        return shared_user_dict
 
     def get_user_permissions(self, user, folders):
         """
@@ -177,14 +181,14 @@ class DataView(generics.ListAPIView):
         Key:    folder_id
         Value:  permission
         """
-        folder_permissions = FolderPermission.objects.filter(
-            user=user, folder__in=folders
-        )
-
-        permissions_dict = {
-            perm.folder_id: perm.permission for perm in folder_permissions
-        }
-        return permissions_dict
+        perm_dict = {}
+        for folder in folders:
+            if folder.creator == user:
+                perm_dict[folder.id] = FolderPermissionEnum.FULL_ACCESS
+            else:
+                highest_permission = get_highest_permission(user, folder)
+                perm_dict[folder.id] = highest_permission
+        return perm_dict
 
     @swagger_auto_schema(
         operation_description="Updates the permissions for a folder.",
@@ -199,59 +203,67 @@ class DataView(generics.ListAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        try:  # such a big try block isn't great, but helpful for debug purposes for now...
-            user = request.user
-            data = request.data
+        source = request.user
+        data = request.data
+
+        try:
             folder = Folder.objects.get(id=data["folderId"])
-            userToUpdate = User.objects.get(email=data["email"])
-            if not user.can_share_folder(folder):
-                return Response(
-                    {"detail": "You do not have permission to share this folder."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            # If permission is None, delete the permission
-            if data["permission"] == "none":
-                try:
-                    FolderPermission.objects.filter(
-                        user=userToUpdate, folder=folder
-                    ).delete()
-                    return Response(
-                        {"detail": "Permission deleted successfully."},
-                        status=status.HTTP_200_OK,
-                    )
-                except Exception:
-                    # This shouldn't happen (hence broad catch), but if it does, we'll just return a 400
-                    return Response(
-                        {"detail": "Bad request."}, status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            else:
-                # Update existing, or create if none exists (perms now unique by folder+user combination)
-                permission, created = FolderPermission.objects.update_or_create(
-                    user=userToUpdate,
-                    folder=folder,
-                    defaults={
-                        "permission": data["permission"]
-                    },  # define what we want to update; here, only permission
-                )
-
-                return Response(
-                    {"detail": "Permission upserted successfully."},
-                    status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-                )
         except Folder.DoesNotExist:
             return Response(
                 {"detail": "Folder not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        except Folder.MultipleObjectsReturned:
+            return Response(
+                {"detail": "Multiple folders found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target = User.objects.get(email=data["email"])
         except User.DoesNotExist:
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
-            print(e)  # hurray for print logging
+        except User.MultipleObjectsReturned:
             return Response(
-                {"detail": "Bad request."}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Multiple users found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Verify request user is creator, or has FULL_ACCESS
+        if not source.can_share_folder(folder):
+            return Response(
+                {"detail": "You do not have permission to share this folder."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # If permission is None, delete the permission
+        if data["permission"] == "none":
+            try:
+                source.unshare_folder_with_target(folder, target)
+                return Response(
+                    {"detail": "Permission deleted successfully."},
+                    status=status.HTTP_200_OK,
+                )
+            except Share.DoesNotExist:
+                return Response(
+                    {"detail": "Share not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+            except Share.MultipleObjectsReturned:
+                return Response(
+                    {"detail": "Multiple shares found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            # Update existing, or create if none exists (perms now unique by folder+user combination)
+            permission, created = Share.objects.update_or_create(
+                source=source,
+                target=target,
+                folder=folder,
+                permission=data["permission"],
+            )
+            return Response(
+                {"detail": "Permission upserted successfully."},
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
             )
 
 
@@ -426,16 +438,10 @@ class FolderForUser(APIView):
         return Folder.objects.filter(creator=user)
 
     def get_shared(self, user):
-        if FolderPermission.objects.filter(user=user).exists():
-            shared = None
-            for permission in FolderPermission.objects.filter(user=user):
-                if shared is None:
-                    shared = Folder.objects.filter(pk=permission.folder.pk)
-                else:
-                    shared = shared | Folder.objects.filter(pk=permission.folder.pk)
-            return shared
-        else:
-            return None
+        shared = Share.objects.filter(
+            target=user, permission__isnull=False
+        ).values_list("folder", flat=True)
+        return shared
 
     def get(self, request, pk):
         user = self.get_object(pk)
