@@ -114,9 +114,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
+    tags = serializers.SerializerMethodField()
+
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'url']
+        fields = ['id', 'title', 'description', 'url', 'tags']
+
+    def get_tags(self, obj):
+        return [tag.name for tag in obj.tags.all()]
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
@@ -198,18 +203,40 @@ class FolderSerializer(serializers.ModelSerializer):
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
+    tags = serializers.CharField(write_only=True, allow_blank=True, required=False)
+
     class Meta:
         model = Folder
-        fields = ["title"]
+        fields = ["title", "tags"]
         extra_kwargs = {
             "title": {"required": True},
         }
 
+        def validate_title(self, value):
+            if not value.strip():
+                raise serializers.ValidationError("title cannot be blank")
+            return value
+
+        def validate_tags(self, value):
+            tags = [tag.strip() for tag in value.split(',') if tag.strip()]
+            return tags
+
     def create(self, validated_data):
+        tag_names = validated_data.pop("tags", [])
+
         folder = Folder(
             title=validated_data["title"],
             creator=validated_data["creator"],
+
         )
+
+        if tag_names:
+            tag_list = []
+            for tag_name in tag_names:
+                tag, _ = Tag.objects.get_or_create(name=tag_name)
+                tag_list.append(tag)
+            folder.tags.set(tag_list)
+
         return folder
 
 

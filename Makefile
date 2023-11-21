@@ -1,11 +1,10 @@
 .PHONY: up down clean
 
 up:
-    docker compose up --build -d
+	docker compose up --build -d
 
 down:
-    docker compose down --remove-orphans
+	docker compose down --remove-orphans
 
 clean:
-    docker compose down --remove-orphans --volumes
-
+	docker compose down --remove-orphans --volumes
