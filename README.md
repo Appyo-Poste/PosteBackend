@@ -144,8 +144,7 @@ certificate is created it can not be edited without invalidating it, and multipl
 
 recommendation:  
 For development have the remote test server and localhost(10.0.2.2) info in the certificate together. Along both using the 
-same certificate so the app can be switched between them without having to switch certificates.  
-For deployment have only hosts that will be running the backend with high uptime.
+same certificate so the app can be switched between them without having to switch certificates.
 
 ---
 
