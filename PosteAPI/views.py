@@ -489,7 +489,17 @@ class IndividualPostView(APIView):
         try:
             post = Post.objects.get(pk=id)
             data = json.loads(request.body.decode('utf-8'))
-            post.edit(data.get('title'), data.get('description'), data.get('url'))
+            tagsMerged = data.get('tags')
+            print(tagsMerged)
+            tag_names = [tag.strip() for tag in tagsMerged.split(', ') if tag.strip()]
+            tag_list = []
+            if tag_names:
+                for tag_name in tag_names:
+                    tag, _ = Tag.objects.get_or_create(name=tag_name)
+                    tag_list.append(tag)
+                post.tags.set(tag_list)
+
+            post.edit(data.get('title'), data.get('description'), data.get('url'), data.get('url'), tag_list)
             return Response({"success": True}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             message = "Post does not exist"
