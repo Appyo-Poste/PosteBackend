@@ -17,16 +17,16 @@ This repository contains the Poste backend server application / API as a Python 
 
 `cd PosteBackend`
 
-3. Install and run Docker for your system: 
+3. Install and run Docker for your system:
 
 >https://www.docker.com/get-started/
 
 4. Run the application via Docker using Docker Compose. Optional Make target provided for convenience.
 
-`docker compose up --build -d` or `make up` 
+`docker compose up --build -d` or `make up`
 
 5. The application will be running locally:
- 
+
 >http://localhost
 
 6. A default superuser account will be created with the following credentials. Use this to login:
@@ -70,7 +70,7 @@ cd PosteBackend
 
 3. Create virtual environment
 ```
-`python -m venv venv`   
+`python -m venv venv`
 ```
 
 4. Activate virtual environment
@@ -104,7 +104,7 @@ To run the tests, first ensure you have activated the virtual environment, as sh
 python manage.py test
 ```
 
-Django automatically identifies and runs tests with this command. To ensure written tests are properly identified, 
+Django automatically identifies and runs tests with this command. To ensure written tests are properly identified,
 name them accordingly (e.g. `test<name>.py`) and place them in the `PosteBackend/tests/` directory.
 
 Alternatively, you may shell into the Docker container and run the tests from there. To do so:
@@ -122,29 +122,27 @@ python manage.py test
 ---
 # SSL and Certs
 
-In order to use HTTPS, we need to generate a certificate and key. 
+In order to use HTTPS, we need to generate a certificate and key. A new command has been
+added to utilize the configuration file `san.cnf` to generate a certificate and key with
+the correct settings.
 
-To generate a self-signed certificate and key, run the following command:
-```
-openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes -addext "subjectAltName = IP:10.0.2.2"
-```
+To generate a self-signed certificate and key:
 
-This will generate a certificate and key, which can be used to enable HTTPS. These files should not be committed to
-version control, and should be kept secret. As a result, they are not included in this repository.
-They will also need to be used in the frontend application, which is not included in this repository.
+1) `cd` into `deploy` folder
+2) Use OpenSSL to generate a new 4096-bit RSA private key (poste.key) and a corresponding
+Certificate Signing Request (CSR, poste.csr), using the settings defined in the san.cnf
+configuration file:
+`openssl req -newkey rsa:4096 -nodes -keyout poste.key -out poste.csr -config san.cnf`
+3) Use OpenSSL to to create a self-signed SSL certificate (poste.crt) from a given
+Certificate Signing Request (poste.csr), signing it with the private key (poste.key) and
+including extensions from san.cnf, valid for 365 days:
+`openssl x509 -req -in poste.csr -signkey poste.key -out poste.crt -days 365 -extfile san.cnf -extensions req_ext`
+4) Ensure the certificate and key are placed in the `deploy` directory.
+5) Ensure the certificate is present in the frontend application, which is not included
+in this repository.
 
-As a result, this repository should not be committed to the main branch until we are ready to solely use HTTPS.
-
-The -addext "subjectAltName = " section adds info to the subjectAltName section to the certificate. subjectAltName is 
-used for https host name verification, this means that our app will only be able to connect to URLs or ips specified in 
-subject alt names. You can add as many subject alt names to certificate as you want as a comma separated list. For adding 
-ips use IP:1.2.3.4 formate and for URl use DNS:example.com, E.X. -addext "subjectAltName = IP:1.2.3.4,DNS:example.com", 
-would allow the app to connect to both of these places as long as they have the correct certificate. Reminder once a 
-certificate is created it can not be edited without invalidating it, and multiple hosts can use the same cert.
-
-recommendation:  
-For development have the remote test server and localhost(10.0.2.2) info in the certificate together. Along both using the 
-same certificate so the app can be switched between them without having to switch certificates.
+Reminder: once a certificate is created it can not be edited without invalidating it,
+and multiple hosts can use the same cert.
 
 ---
 
@@ -152,27 +150,27 @@ same certificate so the app can be switched between them without having to switc
 
 ## Models
 
-In Django, a **model** is a Python class that inherits from django.db.models.Model, and is essentially a blueprint 
+In Django, a **model** is a Python class that inherits from django.db.models.Model, and is essentially a blueprint
 that defines the fields and behaviors of the data you will store. This allows us to interact with our backing data using
 **objects** instead of writing raw SQL queries.
 
-A Django model corresponds to a database table, where the class attributes define the table columns, and instances of 
-the class (or objects) represent individual rows in the table. So, when you create an object (an instance of a model), 
-you are filling a row in the corresponding database table with data, according to the structure (fields) defined in the 
-model. This connection between objects, models, and tables enables Django to provide a high-level, Pythonic interface to 
+A Django model corresponds to a database table, where the class attributes define the table columns, and instances of
+the class (or objects) represent individual rows in the table. So, when you create an object (an instance of a model),
+you are filling a row in the corresponding database table with data, according to the structure (fields) defined in the
+model. This connection between objects, models, and tables enables Django to provide a high-level, Pythonic interface to
 interact with the database, abstracting away the SQL complexity.
 
 ## Migrations
 
-Migrations are important to ensure that the database schema matches the current state of the project models. Whenever 
-models are modified, Django needs a way to create a schema change in the database, to make sure the stored data adheres 
+Migrations are important to ensure that the database schema matches the current state of the project models. Whenever
+models are modified, Django needs a way to create a schema change in the database, to make sure the stored data adheres
 to the new structure. That's where migrations come into play.
 
 ## When to Create a Migration
 
 You should create a new migration when you have:
 
-- Created a new model. 
+- Created a new model.
 - Made changes to an existing model such as adding, deleting, or altering fields.
 
 ## When to Apply Migrations
@@ -206,7 +204,7 @@ python manage.py migrate
 
 ### Rolling Back Migrations
 
-To undo migrations, you can use the migrate command followed by the name of the app and the migration you want to roll 
+To undo migrations, you can use the migrate command followed by the name of the app and the migration you want to roll
 back to:
 
 ```
@@ -223,27 +221,27 @@ To show the migrations and their status (applied or not), use:
 
 ```
 python manage.py showmigrations
-```    
+```
 
 ### Deleting and Recreating Migrations
 
-There might be scenarios where you want to delete and recreate migrations, especially during development. This is often 
+There might be scenarios where you want to delete and recreate migrations, especially during development. This is often
 done when you want to clean up your migration history and start afresh.
 
 - To remove migrations, you can simply delete the migration files from the migrations/ directory in your app.
-- Clear the migration history from the database. Currently, we are using Django’s default database (SQLite), so we can 
+- Clear the migration history from the database. Currently, we are using Django’s default database (SQLite), so we can
   simply delete the `db.sqlite3` file.
 - Then, create a new initial migration using makemigrations and apply it using migrate.
 
 ### Key Considerations
 
-- Do not delete migrations once they are applied and pushed to a shared or production environment. Any deletion or 
-manual modification in the migrations or their order can lead to inconsistent database states amongst developers and 
+- Do not delete migrations once they are applied and pushed to a shared or production environment. Any deletion or
+manual modification in the migrations or their order can lead to inconsistent database states amongst developers and
 deployments.
 - Always pull the latest codebase and apply other developers’ migrations before creating your own to minimize conflicts.
-- Resolve Merge Conflicts Carefully: If two developers make conflicting model changes, then it can create a conflict in 
+- Resolve Merge Conflicts Carefully: If two developers make conflicting model changes, then it can create a conflict in
 migrations. You must resolve this conflict manually with utmost care.
-- Be Cautious with Data Migrations: If you’re dealing with data migrations (modifying existing data in the database), 
+- Be Cautious with Data Migrations: If you’re dealing with data migrations (modifying existing data in the database),
 ensure to have data backup and thoroughly test the migration before applying it.
 
 ---
@@ -263,14 +261,14 @@ Currently, our project has the following models:
 - Folder: Represents a folder created by a user.
 - FolderPermission: Represents a permission granted to a user for a folder.
 
-`models.py` also contains helper methods used by the classes; for instance, we can write methods to retrieve all 
+`models.py` also contains helper methods used by the classes; for instance, we can write methods to retrieve all
 folders or posts a user has access to, to create a new post or folder for a user, etc.
 
 ## Views
-In a Django project, views act as intermediaries between models and templates, receiving HTTP requests from users, 
+In a Django project, views act as intermediaries between models and templates, receiving HTTP requests from users,
 retrieving data from models, and sending data back to templates to render pages. In our case, however, we are currently
 only using Django to create an API, so we do not have any templates. Instead, our views return serialized data in JSON
-format. Regardless, Views handle the "logic" of our application. They request information from the model and pass it on. 
+format. Regardless, Views handle the "logic" of our application. They request information from the model and pass it on.
 If you are familiar with the common MVC (Model-View-Controller) pattern, Django views are the controllers. (Note that
 Django does not strictly follow the MVC pattern, instead using a similar pattern called MVT, or Model-View-Template.) In
 this way, views manage the communication between the user interface and the data.
@@ -282,7 +280,7 @@ instance) or have different URLs map to different views.
 
 ## URLs
 URLs are defined in an app's `urls.py` file, and are used to map URLs to views. Because our project has one app,
-`PosteAPI`, the URLs are defined in `PosteAPI/urls.py`. This is how we determine which view (logic) to use for a given 
+`PosteAPI`, the URLs are defined in `PosteAPI/urls.py`. This is how we determine which view (logic) to use for a given
 URL (endpoint).
 
 
@@ -306,9 +304,3 @@ including the URL, HTTP method, parameters, and response. You can also use the S
 Note: As you are building the API, you will need to update the Swagger documentation to reflect the changes you make.
 This can be done by adding the `swagger_auto_schema` decorator to the view, and specifying the parameters and response
 schema. See the Swagger documentation for more information: https://drf-yasg.readthedocs.io/en/stable/custom_spec.html
-
-
-
-
-
-
