@@ -2,5 +2,8 @@ venv/
 .idea/
 db.sqlite3
 *pycache*
+openssl.cnf
 *.crt
+*.csr
 *.key
+*.pem

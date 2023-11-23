@@ -120,6 +120,33 @@ python manage.py test
 ```
 
 ---
+# SSL and Certs
+
+In order to use HTTPS, we need to generate a certificate and key. 
+
+To generate a self-signed certificate and key, run the following command:
+```
+openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes -addext "subjectAltName = IP:10.0.2.2"
+```
+
+This will generate a certificate and key, which can be used to enable HTTPS. These files should not be committed to
+version control, and should be kept secret. As a result, they are not included in this repository.
+They will also need to be used in the frontend application, which is not included in this repository.
+
+As a result, this repository should not be committed to the main branch until we are ready to solely use HTTPS.
+
+The -addext "subjectAltName = " section adds info to the subjectAltName section to the certificate. subjectAltName is 
+used for https host name verification, this means that our app will only be able to connect to URLs or ips specified in 
+subject alt names. You can add as many subject alt names to certificate as you want as a comma separated list. For adding 
+ips use IP:1.2.3.4 formate and for URl use DNS:example.com, E.X. -addext "subjectAltName = IP:1.2.3.4,DNS:example.com", 
+would allow the app to connect to both of these places as long as they have the correct certificate. Reminder once a 
+certificate is created it can not be edited without invalidating it, and multiple hosts can use the same cert.
+
+recommendation:  
+For development have the remote test server and localhost(10.0.2.2) info in the certificate together. Along both using the 
+same certificate so the app can be switched between them without having to switch certificates.
+
+---
 
 # Models and Migrations
 
