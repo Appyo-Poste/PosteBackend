@@ -3,7 +3,7 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 from django.test import TestCase
 
-from PosteAPI.models import Folder, Post, User, FolderPermissionEnum, FolderPermission, Tag
+from PosteAPI.models import Folder, FolderPermissionEnum, Post, Share, Tag, User
 
 
 class UserModelTest(TestCase):
@@ -58,19 +58,9 @@ class FolderModelTest(TestCase):
         )
 
     def test_create_folder_via_method(self):
-        """
-        Previously, we had to call user.create_folder vs. creating the object directly in order to create
-        the associated FULL_ACCESS for creator. This has been added to the Folder model's save method, so
-        we can now create the object directly -- either way works.
-        """
         folder = self.user.create_folder("Test Folder")
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
-        user_folder_permission = FolderPermission.objects.get(
-            user=self.user,
-            folder=folder
-        )
-        self.assertEqual(user_folder_permission.permission, FolderPermissionEnum.FULL_ACCESS)
 
     def test_create_folder(self):
         """
@@ -79,54 +69,96 @@ class FolderModelTest(TestCase):
         folder = Folder.objects.create(title="Test Folder", creator=self.user)
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
-        user_folder_permission = FolderPermission.objects.get(
-            user=self.user,
-            folder=folder
-        )
-        self.assertEqual(user_folder_permission.permission, FolderPermissionEnum.FULL_ACCESS)
 
 
-class FolderPermissionModelTest(TestCase):
+class ShareModelTest(TestCase):
     def setUp(self) -> None:
-        self.user = User.objects.create_user(
-            email="test@example.com", username="unused", password="securepassword123"
+        self.user1 = User.objects.create_user(
+            email="test1@example.com", username="unused1", password="securepassword123"
         )
         self.user2 = User.objects.create_user(
-            email="test2@example.com", username="another user", password="securepassword123"
+            email="test2@example.com", username="unused2", password="securepassword123"
         )
-        self.folder = self.user.create_folder("Test Folder")
-
-    def test_share_and_unshare_folder(self):
-        self.user.share_folder_with_user(self.folder, self.user2, FolderPermissionEnum.EDITOR)
-        self.assertTrue(self.user2.can_edit_folder(self.folder))
-        self.user.unshare_folder_with_user(self.folder, self.user2)
-        self.assertFalse(self.user2.can_edit_folder(self.folder))
-
-    def test_permissions_folder(self):
         self.user3 = User.objects.create_user(
-            email="test3@example.com", username="yet another user", password="securepassword123"
+            email="test3@example.com", username="unused3", password="securepassword123"
         )
         self.user4 = User.objects.create_user(
-            email="test4@example.com", username="user four", password="securepassword123"
+            email="test4@example.com", username="unused4", password="securepassword123"
         )
-        self.user.share_folder_with_user(self.folder, self.user2, FolderPermissionEnum.FULL_ACCESS)
-        self.user.share_folder_with_user(self.folder, self.user3, FolderPermissionEnum.EDITOR)
-        self.user.share_folder_with_user(self.folder, self.user4, FolderPermissionEnum.VIEWER)
-        # all users should be able to view
-        self.assertTrue(self.user.can_view_folder(self.folder))
-        self.assertTrue(self.user2.can_view_folder(self.folder))
-        self.assertTrue(self.user3.can_view_folder(self.folder))
-        self.assertTrue(self.user4.can_view_folder(self.folder))
-        # only editor and above should be able to edit
-        self.assertTrue(self.user.can_edit_folder(self.folder))
-        self.assertTrue(self.user2.can_edit_folder(self.folder))
-        self.assertTrue(self.user3.can_edit_folder(self.folder))
-        self.assertFalse(self.user4.can_edit_folder(self.folder))
-        # only full_access can share
-        self.assertTrue(self.user.can_share_folder(self.folder))
-        self.assertTrue(self.user2.can_share_folder(self.folder))
-        self.assertFalse(self.user3.can_share_folder(self.folder))
-        self.assertFalse(self.user4.can_share_folder(self.folder))
+        self.folder1 = self.user1.create_folder("Test Folder")
+        self.folder2 = self.user1.create_folder("Test Folder 2")
+        self.folder3 = self.user1.create_folder("Test Folder 3")
+
+    def test_share_and_unshare_folder(self):
+        self.user1.share_folder_with_user(
+            self.folder1, self.user2, FolderPermissionEnum.FULL_ACCESS
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user1, target=self.user2, folder=self.folder1
+            ).exists()
+        )
+        self.assertTrue(self.user2.can_edit_folder(self.folder1))
+        self.user1.unshare_folder_with_target(self.folder1, self.user2)
+        self.assertFalse(
+            Share.objects.filter(
+                source=self.user1, target=self.user2, folder=self.folder1
+            ).exists()
+        )
+        self.assertFalse(self.user2.can_edit_folder(self.folder1))
+
+    def test_unshare_redirects_shares(self):
+        self.user1.share_folder_with_user(
+            self.folder1, self.user2, FolderPermissionEnum.FULL_ACCESS
+        )
+        self.user2.share_folder_with_user(
+            self.folder1, self.user3, FolderPermissionEnum.FULL_ACCESS
+        )
+        self.user2.share_folder_with_user(
+            self.folder1, self.user4, FolderPermissionEnum.FULL_ACCESS
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user1, target=self.user2, folder=self.folder1
+            ).exists()
+        )
+        self.assertFalse(
+            Share.objects.filter(
+                source=self.user1, target=self.user3, folder=self.folder1
+            ).exists()
+        )
+        self.assertFalse(
+            Share.objects.filter(
+                source=self.user1, target=self.user4, folder=self.folder1
+            ).exists()
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user2, target=self.user3, folder=self.folder1
+            ).exists()
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user2, target=self.user4, folder=self.folder1
+            ).exists()
+        )
+        self.user1.unshare_folder_with_target(self.folder1, self.user2)
+        self.assertFalse(
+            Share.objects.filter(
+                source=self.user1, target=self.user2, folder=self.folder1
+            ).exists()
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user1, target=self.user3, folder=self.folder1
+            ).exists()
+        )
+        self.assertTrue(
+            Share.objects.filter(
+                source=self.user1, target=self.user4, folder=self.folder1
+            ).exists()
+        )
+
 
 class TagModelTest(TestCase):
     def setUp(self) -> None:
@@ -138,15 +170,15 @@ class TagModelTest(TestCase):
     def test_add_tag_to_post(self):
         # Create a post without tags
         post = Post.objects.create(
-            title='Sample Post',
-            description='Sample description',
-            url='http://example.com',
+            title="Sample Post",
+            description="Sample description",
+            url="http://example.com",
             creator=self.user,
-            folder=self.folder
+            folder=self.folder,
         )
 
         # Create a tag and add it to the post
-        tag = Tag.objects.create(name='test')
+        tag = Tag.objects.create(name="test")
         post.tags.add(tag)
         post.save()
 
@@ -157,17 +189,19 @@ class TagModelTest(TestCase):
 
     def test_tags_stored_in_lowercase(self):
         # Create a tag with uppercase letters
-        Tag.objects.create(name='TEST')
+        Tag.objects.create(name="TEST")
 
         # Check if the tag was converted to lowercase
-        tag = Tag.objects.get(name='test')
-        self.assertEqual(tag.name, 'test')
+        tag = Tag.objects.get(name="test")
+        self.assertEqual(tag.name, "test")
 
         # Attempt to create another tag with the same name but different case
         try:
             with transaction.atomic():
-                Tag.objects.create(name='tEsT')
-            self.fail('Creating a tag with the same name but different casing did not raise an IntegrityError.')
+                Tag.objects.create(name="tEsT")
+            self.fail(
+                "Creating a tag with the same name but different casing did not raise an IntegrityError."
+            )
         except IntegrityError:
             # This is expected, so the test should pass
             pass
@@ -176,73 +210,68 @@ class TagModelTest(TestCase):
         self.assertEqual(Tag.objects.count(), 1)
 
     def test_tag_str(self):
-        tag = Tag.objects.create(name='test')
-        self.assertEqual(str(tag), 'test')
+        tag = Tag.objects.create(name="test")
+        self.assertEqual(str(tag), "test")
 
     def test_tag_unique(self):
-        Tag.objects.create(name='test')
+        Tag.objects.create(name="test")
         with self.assertRaises(IntegrityError):
-            Tag.objects.create(name='TEST')
+            Tag.objects.create(name="TEST")
 
     def test_tag_strips_whitespace(self):
-        tag = Tag.objects.create(name=' test ')
-        self.assertEqual(tag.name, 'test')
+        tag = Tag.objects.create(name=" test ")
+        self.assertEqual(tag.name, "test")
 
     def test_empty_tag_not_created(self):
         with self.assertRaises(ValidationError):
-            Tag.objects.create(name='')
+            Tag.objects.create(name="")
         with self.assertRaises(ValidationError):
-            Tag.objects.create(name=' ')
+            Tag.objects.create(name=" ")
         with self.assertRaises(ValidationError):
-            Tag.objects.create(name='  ')
+            Tag.objects.create(name="  ")
 
     def test_tag_remove_punctuation(self):
         # Create a tag with punctuation
-        tag = Tag.objects.create(name='hello,world!')
-        self.assertEqual(tag.name, 'helloworld')
+        tag = Tag.objects.create(name="hello,world!")
+        self.assertEqual(tag.name, "helloworld")
 
     def test_tag_empty_after_punctuation_removed(self):
         # Try to create a tag that's only punctuation, should raise ValidationError
         with self.assertRaises(ValidationError):
-            Tag.objects.create(name='!@#$%^&*()')
+            Tag.objects.create(name="!@#$%^&*()")
 
     def test_tag_remove_punctuation_start(self):
         # Punctuation at the start
-        tag = Tag.objects.create(name='!start')
-        self.assertEqual(tag.name, 'start')
+        tag = Tag.objects.create(name="!start")
+        self.assertEqual(tag.name, "start")
 
     def test_tag_remove_punctuation_middle(self):
         # Punctuation in the middle
-        tag = Tag.objects.create(name='mid!dle')
-        self.assertEqual(tag.name, 'middle')
+        tag = Tag.objects.create(name="mid!dle")
+        self.assertEqual(tag.name, "middle")
 
     def test_tag_remove_punctuation_end(self):
         # Punctuation at the end
-        tag = Tag.objects.create(name='end!')
-        self.assertEqual(tag.name, 'end')
+        tag = Tag.objects.create(name="end!")
+        self.assertEqual(tag.name, "end")
 
     def test_tag_remove_various_punctuation(self):
         # String with various types of punctuation
-        tag = Tag.objects.create(name='!various.punctuation,here;')
-        self.assertEqual(tag.name, 'variouspunctuationhere')
+        tag = Tag.objects.create(name="!various.punctuation,here;")
+        self.assertEqual(tag.name, "variouspunctuationhere")
 
     def test_tag_punctuation_only(self):
         # String with punctuation only
         with self.assertRaises(ValidationError):
-            Tag.objects.create(name='!?.')
+            Tag.objects.create(name="!?.")
 
     def test_tag_punctuation_with_spaces(self):
         # String with punctuation and spaces
-        tag = Tag.objects.create(name=' punc!tua tion ')
-        self.assertEqual(tag.name, 'punctuation')
+        tag = Tag.objects.create(name=" punc!tua tion ")
+        self.assertEqual(tag.name, "punctuation")
 
     def test_tag_unique_after_punctuation_removal(self):
         # Ensuring uniqueness after punctuation removal
-        Tag.objects.create(name='unique-tag')
+        Tag.objects.create(name="unique-tag")
         with self.assertRaises(IntegrityError):
-            Tag.objects.create(name='unique!tag')
-
-
-
-
-
+            Tag.objects.create(name="unique!tag")

@@ -185,7 +185,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         with transaction.atomic():  # Useful for ensuring all db transactions happen at once
             # user obtained from token, which uses context
             post = Post.objects.create(
-                folder=folder, creator=self.context["request"].user, **validated_data
+                folder=folder, creator=self.context["request"].user1, **validated_data
             )
             if tag_names:
                 tag_list = []

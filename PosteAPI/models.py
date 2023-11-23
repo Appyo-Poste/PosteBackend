@@ -2,7 +2,7 @@ import string
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import IntegrityError, models
 from django.utils.translation import gettext_lazy
 
 
@@ -10,6 +10,11 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Make username the same as email
+        self.username = self.email
+        super(User, self).save(*args, **kwargs)
 
     def create_folder(self, title):
         folder = Folder.objects.create(title=title, creator=self)
@@ -82,23 +87,40 @@ class User(AbstractUser):
 
     def unshare_folder_with_target(self, folder, target):
         """
-        Unshare a folder with a specific target user and ensure they unshare it with anyone they shared it with.
+        Unshare a folder with a specific target user.
+        If the target user has shared the folder with other users, redirect those
+        Shares such that the current user is the source of the share.
+        This ensures that these Shares are still controlled.
         """
-        share = Share.objects.filter(source=self, target=target, folder=folder)
-        if not share.exists():
-            raise Share.DoesNotExist
-        elif share.count() > 1:
-            raise Share.MultipleObjectsReturned
-        # First, handle the cascade of unshares
-        self.unshare_folder_recursively(folder, target)
+        # Retrieve the share instance between self and target
+        share = Share.objects.get(source=self, target=target, folder=folder)
 
-        # Then, delete the original share between the user and the target, if it exists
+        # Reassign target users share source to self
+        target_shares = Share.objects.filter(source=target, folder=folder)
+        for target_share in target_shares:
+            try:
+                # Check if a similar share already exists
+                existing_share = Share.objects.filter(
+                    source=self, target=target_share.target, folder=folder
+                )
+                if existing_share.exists():
+                    #  Don't need to reassign the share if it already exists
+                    target_share.delete()
+                else:
+                    # Otherwise, reassign the share
+                    target_share.source = self
+                    target_share.save()
+            except IntegrityError as e:
+                print("Error reassigning share: ", e)
+                pass
+
+        # Finally, delete the original share with the target user
         share.delete()
 
     def share_folder_with_user(self, folder, user, permission):
         if not self.can_share_folder(folder):
             raise Exception("You do not have permission to share this folder.")
-        Share.objects.create(
+        Share.objects.get_or_create(
             source=self, target=user, folder=folder, permission=permission
         )
 

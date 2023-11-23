@@ -126,7 +126,7 @@ class DataView(generics.ListAPIView):
     )
 
     def get_queryset(self):
-        user = self.request.user
+        user = self.request.user1
         folders = Folder.objects.filter(
             Q(creator=user)
             | Q(  # Folders owned by the user
@@ -144,8 +144,8 @@ class DataView(generics.ListAPIView):
         folders = self.get_queryset()
         context = {
             "request": request,
-            "user_permissions": self.get_user_permissions(request.user, folders),
-            "shared_users": self.get_shared_users(request.user, folders),
+            "user_permissions": self.get_user_permissions(request.user1, folders),
+            "shared_users": self.get_shared_users(request.user1, folders),
         }
         serializer = self.get_serializer(folders, many=True, context=context)
         return Response(serializer.data)
@@ -203,7 +203,7 @@ class DataView(generics.ListAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        source = request.user
+        source = request.user1
         data = request.data
 
         try:
@@ -254,7 +254,7 @@ class DataView(generics.ListAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         else:
-            # Update existing, or create if none exists (perms now unique by folder+user combination)
+            # Update existing or create - unique by source, target, folder
             permission, created = Share.objects.update_or_create(
                 source=source,
                 target=target,
@@ -419,7 +419,7 @@ class FolderAPI(APIView):
         serializer = FolderCreateSerializer(data=request.data)
         if serializer.is_valid():
             validated_data = serializer.validated_data
-            Folder.objects.create(creator=request.user, **validated_data)
+            Folder.objects.create(creator=request.user1, **validated_data)
             return Response(status=status.HTTP_201_CREATED)
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -512,7 +512,7 @@ class PostAPI(APIView):
             data=request.data, context={"request": request}
         )
         if serializer.is_valid():
-            serializer.validated_data["creator"] = request.user
+            serializer.validated_data["creator"] = request.user1
             serializer.save()
             return Response(status=status.HTTP_201_CREATED)
         else:
