@@ -126,22 +126,20 @@ In order to use HTTPS, we need to generate a certificate and key. A new command 
 added to utilize the configuration file `san.cnf` to generate a certificate and key with
 the correct settings.
 
-To generate a self-signed certificate and key, run the following command:
-```
-openssl req -x509 -newkey rsa:4096 -keyout poste.key -out poste.crt -days 365 -nodes -config san.cnf
-```
+To generate a self-signed certificate and key:
 
-Ensure these are placed in the `deploy` directory.
-
-This will generate a certificate and key, which can be used to enable HTTPS. These files should not be committed to
-version control, and should be kept secret. As a result, they are not included in this repository.
-They will also need to be used in the frontend application, which is not included in this repository.
-
-Where previously we used `-addext "subjectAltName = "` section to add info to the
-subjectAltName section to the certificate, this is now handled by the configuration
-file `san.cnf`. `subjectAltName` is used for https host name verification, and
-ensures that our app will only be able to connect to URLs or IPs specified in
-subject alt names.
+1) `cd` into `deploy` folder
+2) Use OpenSSL to generate a new 4096-bit RSA private key (poste.key) and a corresponding
+Certificate Signing Request (CSR, poste.csr), using the settings defined in the san.cnf
+configuration file:
+`openssl req -newkey rsa:4096 -nodes -keyout poste.key -out poste.csr -config san.cnf`
+3) Use OpenSSL to to create a self-signed SSL certificate (poste.crt) from a given
+Certificate Signing Request (poste.csr), signing it with the private key (poste.key) and
+including extensions from san.cnf, valid for 365 days:
+`openssl x509 -req -in poste.csr -signkey poste.key -out poste.crt -days 365 -extfile san.cnf -extensions req_ext`
+4) Ensure the certificate and key are placed in the `deploy` directory.
+5) Ensure the certificate is present in the frontend application, which is not included
+in this repository.
 
 Reminder: once a certificate is created it can not be edited without invalidating it,
 and multiple hosts can use the same cert.
