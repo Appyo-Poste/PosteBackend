@@ -28,8 +28,8 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost",
-    "https://localhost"
+    "https://localhost",
+    "https://postebackend.duckdns.org",
 ]
 
 # Application definition
@@ -48,8 +48,8 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # Ensuring only Token Auth is used
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",  # Ensuring only Token Auth is used
     ],
 }
 
@@ -101,17 +101,17 @@ localdb = {
 
 # If running via Docker Compose, Postgres may be used (see docker-compose.yml and DATABASES env var)
 dockerdb = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DATABASE_NAME', 'postgres'),
-        'USER': os.environ.get('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('DATABASE_HOST', 'postgres'),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DATABASE_NAME", "postgres"),
+        "USER": os.environ.get("DATABASE_USER", "postgres"),
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "postgres"),
+        "HOST": os.environ.get("DATABASE_HOST", "postgres"),
+        "PORT": os.environ.get("DATABASE_PORT", "5432"),
     }
 }
 
-if os.environ.get('DATABASE_SETTING') == 'docker':
+if os.environ.get("DATABASE_SETTING") == "docker":
     DATABASES = dockerdb
 else:
     DATABASES = localdb
