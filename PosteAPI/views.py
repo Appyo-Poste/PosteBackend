@@ -492,13 +492,18 @@ class IndividualPostView(APIView):
             tagsMerged = data.get('tags')
             print(tagsMerged)
             tag_names = [tag.strip() for tag in tagsMerged.split(', ') if tag.strip()]
+            print(tag_names)
             tag_list = []
             if tag_names:
                 for tag_name in tag_names:
+                    print(tag_name)
+                    # this is where I am having trouble, the method below is the same one used by create post serializer
+                    # to crate a tag or (if the tag already exists) find a tag, but For some reason I can't get the code
+                    # to get passed this point.
                     tag, _ = Tag.objects.get_or_create(name=tag_name)
+                    print(tag_name)
                     tag_list.append(tag)
-                post.tags.set(tag_list)
-
+                    print(tag_name)
             post.edit(data.get('title'), data.get('description'), data.get('url'), data.get('url'), tag_list)
             return Response({"success": True}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
