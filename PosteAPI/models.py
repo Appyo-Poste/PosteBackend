@@ -126,7 +126,7 @@ class Post(models.Model):
         self.title = newTitle
         self.description = newDescription
         self.url = newURL
-        self.tags = newTags
+        self.tags.set(newTags)
         self.save()
 
     def __str__(self):

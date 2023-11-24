@@ -8,12 +8,13 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
-from .models import User, Folder, Post, FolderPermission, FolderPermissionEnum
+from .models import User, Folder, Post, FolderPermission, FolderPermissionEnum, Tag
 
 # import local data
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserSerializer, FolderSerializer, \
@@ -480,7 +481,7 @@ class IndividualPostView(APIView):
             },
             status=status.HTTP_200_OK)
 
-    def patch(self, request, id):
+    def patch(self, request: Request, id: int):
         """
         Edits a post in the server
         :param request: Request object with post id and auth in header
@@ -490,24 +491,18 @@ class IndividualPostView(APIView):
             post = Post.objects.get(pk=id)
             data = json.loads(request.body.decode('utf-8'))
             tagsMerged = data.get('tags')
-            print(tagsMerged)
             tag_names = [tag.strip() for tag in tagsMerged.split(', ') if tag.strip()]
-            print(tag_names)
             tag_list = []
             if tag_names:
                 for tag_name in tag_names:
-                    print(tag_name)
-                    # this is where I am having trouble, the method below is the same one used by create post serializer
-                    # to crate a tag or (if the tag already exists) find a tag, but For some reason I can't get the code
-                    # to get passed this point.
-                    tag, _ = Tag.objects.get_or_create(name=tag_name)
-                    print(tag_name)
+                    tag, created = Tag.objects.get_or_create(name=tag_name)
+                    print(f"Tag: {tag}, Created: {created}")
                     tag_list.append(tag)
-                    print(tag_name)
-            post.edit(data.get('title'), data.get('description'), data.get('url'), data.get('url'), tag_list)
+            post.edit(data.get('title'), data.get('description'), data.get('url'), tag_list)
             return Response({"success": True}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             message = "Post does not exist"
+            print(message)
             return Response({
                 "success": False,
                 "errors": {
@@ -515,7 +510,8 @@ class IndividualPostView(APIView):
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            message = "Server error occurred while deleting post"
+            message = "Server error occurred while editing post"
+            print(message)
             return Response({
                 "success": False,
                 "errors": {
