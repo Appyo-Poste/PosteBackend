@@ -9,15 +9,15 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Folder, FolderPermission, FolderPermissionEnum, Post, User
+from .models import Folder, FolderPermission, FolderPermissionEnum, Post, Tag, User
 
 # import local data
 from .serializers import (
     FolderCreateSerializer,
-    FolderPermissionSerializer,
     FolderSerializer,
     PostCreateSerializer,
     PostSerializer,
@@ -576,7 +576,7 @@ class IndividualPostView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    def patch(self, request, id):
+    def patch(self, request: Request, id: int):
         """
         Edits a post in the server
         :param request: Request object with post id and auth in header
@@ -584,25 +584,42 @@ class IndividualPostView(APIView):
         """
         try:
             post = Post.objects.get(pk=id)
-            data = json.loads(request.body.decode("utf-8"))
-            post.edit(data.get("title"), data.get("description"), data.get("url"))
-            return Response({"success": True}, status=status.HTTP_200_OK)
-        except ObjectDoesNotExist:
+        except Post.DoesNotExist as e:
             message = "Post does not exist"
+            print(f"{message}. Error: {e}")
             return Response(
                 {"success": False, "errors": {"post": [message]}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        except Post.MultipleObjectsReturned as e:
+            message = "Multiple Posts found with that ID"
+            print(f"{message}. Error: {e}")
+            return Response(
+                {"success": False, "errors": {"post": [message]}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        data = json.loads(request.body.decode("utf-8"))
+        try:
+            tags_merged = data.get("tags")
+            tag_names = [tag.strip() for tag in tags_merged.split(", ") if tag.strip()]
         except Exception as e:
-            message = "Server error occurred while deleting post"
-            print(f"{message}: {e}")
+            print(f"Error: {e}")
             return Response(
-                {"success": False, "errors": {"post": [message]}},
+                {"success": False, "errors": {"post": ["Error parsing tags"]}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        tag_list = []
+        if tag_names:
+            for tag_name in tag_names:
+                tag, created = Tag.objects.get_or_create(name=tag_name)
+                print(f"Tag: {tag}, Created: {created}")
+                tag_list.append(tag)
+        post.edit(data.get("title"), data.get("description"), data.get("url"), tag_list)
+        return Response({"success": True}, status=status.HTTP_200_OK)
 
 
-class addPostToFolder(APIView):
+class AddPostToFolder(APIView):
     def get_object(self, pk):
         try:
             return Folder.objects.get(pk=pk)
