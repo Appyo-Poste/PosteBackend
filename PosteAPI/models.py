@@ -6,18 +6,17 @@ from django.db import models
 from django.utils.translation import gettext_lazy
 
 
-def unshare_folder_with_target(folder, target):
-    folder_permissions = FolderPermission.objects.filter(user=target, folder=folder)
-    if not folder_permissions:
-        raise FolderPermission.DoesNotExist("Folder not shared with target user.")
-    for folder_permission in folder_permissions:
-        folder_permission.delete()
-
-
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+
+    def unshare_folder_with_target(self, folder, target):
+        folder_permissions = FolderPermission.objects.filter(user=target, folder=folder)
+        if not folder_permissions:
+            raise FolderPermission.DoesNotExist("Folder not shared with target user.")
+        for folder_permission in folder_permissions:
+            folder_permission.delete()
 
     def create_folder(self, title):
         folder = Folder.objects.create(title=title, creator=self)
