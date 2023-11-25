@@ -167,7 +167,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         "This is one tag"
         "This, , , is, , , four, tags" <- Empty entries are ignored
         """
-        tags = [tag.strip() for tag in value.split(',') if tag.strip()]
+        tags = [tag.strip() for tag in value.split(', ') if tag.strip()]
         return tags
 
     def create(self, validated_data):

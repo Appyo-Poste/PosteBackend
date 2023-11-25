@@ -122,10 +122,11 @@ class Post(models.Model):
     tags = models.ManyToManyField('Tag', blank=True, related_name='posts')
 
 
-    def edit(self, newTitle, newDescription, newURL):
+    def edit(self, newTitle, newDescription, newURL, newTags):
         self.title = newTitle
         self.description = newDescription
         self.url = newURL
+        self.tags.set(newTags)
         self.save()
 
     def __str__(self):
