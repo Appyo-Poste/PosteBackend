@@ -6,6 +6,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy
 
 
+def unshare_folder_with_target(folder, target):
+    folder_permissions = FolderPermission.objects.filter(user=target, folder=folder)
+    if not folder_permissions:
+        raise FolderPermission.DoesNotExist("Folder not shared with target user.")
+    for folder_permission in folder_permissions:
+        folder_permission.delete()
+
+
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
@@ -17,9 +25,7 @@ class User(AbstractUser):
         # this is no longer necessary, as the permission will be created automatically.
         if not FolderPermission.objects.filter(user=self, folder=folder).exists():
             FolderPermission.objects.create(
-                user=self,
-                folder=folder,
-                permission=FolderPermissionEnum.FULL_ACCESS
+                user=self, folder=folder, permission=FolderPermissionEnum.FULL_ACCESS
             )
         return folder
 
@@ -28,24 +34,43 @@ class User(AbstractUser):
 
     def can_view_folder(self, folder):
         return FolderPermission.objects.filter(
-            user=self, folder=folder, permission__in=[
-                FolderPermissionEnum.FULL_ACCESS, FolderPermissionEnum.EDITOR, FolderPermissionEnum.VIEWER]).exists()
+            user=self,
+            folder=folder,
+            permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER,
+            ],
+        ).exists()
 
     def can_view_post(self, post):
         return self.can_view_folder(post.folder)
 
     def can_edit_folder(self, folder):
-        return FolderPermission.objects.filter(
-            user=self, folder=folder, permission__in=[
-                FolderPermissionEnum.FULL_ACCESS, FolderPermissionEnum.EDITOR]).exists()
+        return (
+            self == folder.creator
+            or FolderPermission.objects.filter(
+                user=self,
+                folder=folder,
+                permission__in=[
+                    FolderPermissionEnum.FULL_ACCESS,
+                    FolderPermissionEnum.EDITOR,
+                ],
+            ).exists()
+        )
 
     def can_edit_post(self, post):
         return self.can_edit_folder(post.folder)
 
     def can_share_folder(self, folder):
-        return FolderPermission.objects.filter(
-            user=self, folder=folder, permission__in=[
-                FolderPermissionEnum.FULL_ACCESS]).exists()
+        return (
+            self == folder.creator
+            or FolderPermission.objects.filter(
+                user=self,
+                folder=folder,
+                permission__in=[FolderPermissionEnum.FULL_ACCESS],
+            ).exists()
+        )
 
     def can_share_post(self, post):
         return self.can_share_folder(post.folder)
@@ -60,19 +85,12 @@ class User(AbstractUser):
     def share_folder_with_user(self, folder, user, permission):
         if not self.can_share_folder(folder):
             raise Exception("You do not have permission to share this folder.")
-        FolderPermission.objects.create(
-            user=user,
-            folder=folder,
-            permission=permission
-        )
+        FolderPermission.objects.create(user=user, folder=folder, permission=permission)
 
     def unshare_folder_with_user(self, folder, user):
         if not self.can_share_folder(folder):
             raise Exception("You do not have permission to unshare this folder.")
-        folder_permission = FolderPermission.objects.get(
-            user=user,
-            folder=folder
-        )
+        folder_permission = FolderPermission.objects.get(user=user, folder=folder)
         if not folder_permission:
             raise Exception("User does not have access to this folder.")
         folder_permission.delete()
@@ -89,24 +107,10 @@ class User(AbstractUser):
 class Folder(models.Model):
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
-    tags = models.ManyToManyField('Tag', blank=True, related_name='folder')
+    tags = models.ManyToManyField("Tag", blank=True, related_name="folder")
 
     def __str__(self):
         return self.title
-
-    def save(self, *args, **kwargs):
-        """
-        If the folder is new, create a folder permission for the creator with full access if it doesn't exist.
-        Ensures that the creator always has full access to their own folders.
-        """
-        is_new = not self.pk    # Only applies to new folders (save can be called on existing folders)
-        super().save(*args, **kwargs)
-        if is_new and not FolderPermission.objects.filter(user=self.creator, folder=self).exists():
-            FolderPermission.objects.create(
-                user=self.creator,
-                folder=self,
-                permission=FolderPermissionEnum.FULL_ACCESS,
-            )
 
     def edit(self, newTitle):
         self.title = newTitle
@@ -119,8 +123,7 @@ class Post(models.Model):
     url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
-    tags = models.ManyToManyField('Tag', blank=True, related_name='posts')
-
+    tags = models.ManyToManyField("Tag", blank=True, related_name="posts")
 
     def edit(self, newTitle, newDescription, newURL):
         self.title = newTitle
@@ -131,8 +134,10 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+
 class Tag(models.Model):
     name = models.CharField(max_length=100, blank=False, unique=True)
+
     # This will automatically have a reverse relationship to Posts and Folders
 
     def save(self, *args, **kwargs):
@@ -146,9 +151,13 @@ class Tag(models.Model):
         Raises:
             ValidationError: If the processed name is empty.
         """
-        self.name = self.name.translate(str.maketrans('', '', string.punctuation))  # remove punctuation
+        self.name = self.name.translate(
+            str.maketrans("", "", string.punctuation)
+        )  # remove punctuation
         self.name = self.name.lower()  # lowercase
-        self.name = "".join(self.name.split())  # remove all whitespace, including internal
+        self.name = "".join(
+            self.name.split()
+        )  # remove all whitespace, including internal
         if not self.name:
             raise ValidationError("Tag name cannot be empty.")
         return super(Tag, self).save(*args, **kwargs)
@@ -161,11 +170,11 @@ class Tag(models.Model):
 # https://stackoverflow.com/questions/54802616/how-can-one-use-enums-as-a-choice-field-in-a-django-model
 class FolderPermissionEnum(models.TextChoices):
     # a viewer can only view posts within a folder
-    VIEWER = 'viewer', gettext_lazy('Viewer')
+    VIEWER = "viewer", gettext_lazy("Viewer")
     # an editor can add posts to a folder, edit existing posts, and delete posts
-    EDITOR = 'editor', gettext_lazy('Editor')
+    EDITOR = "editor", gettext_lazy("Editor")
     # a full access user is an editor who can share the folder with other users
-    FULL_ACCESS = 'full_access', gettext_lazy('Full Access')
+    FULL_ACCESS = "full_access", gettext_lazy("Full Access")
 
 
 class FolderPermission(models.Model):
@@ -174,7 +183,7 @@ class FolderPermission(models.Model):
     permission = models.CharField(max_length=12, choices=FolderPermissionEnum.choices)
 
     class Meta:
-        unique_together = ('user', 'folder')
+        unique_together = ("user", "folder")
 
     def __str__(self):
         return f"{self.user.username} has {self.permission} permission within {self.folder.title}"
