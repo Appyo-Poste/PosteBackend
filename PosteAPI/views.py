@@ -500,9 +500,27 @@ class IndividualPostView(APIView):
                     tag_list.append(tag)
             post.edit(data.get('title'), data.get('description'), data.get('url'), tag_list)
             return Response({"success": True}, status=status.HTTP_200_OK)
-        except ObjectDoesNotExist:
+        except post.DoesNotExist as e:
             message = "Post does not exist"
-            print(message)
+            print(f"{message}. Error: {e}")
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except post.MultipleObjectsReturned as e:
+            message = "Multiple Posts found with that ID"
+            print(f"{message}. Error: {e}")
+            return Response({
+                "success": False,
+                "errors": {
+                    "post": [message]
+                }
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except ObjectDoesNotExist as e:
+            message = "Post does not exist"
+            print(f"{message}. Error: {e}")
             return Response({
                 "success": False,
                 "errors": {
@@ -511,7 +529,7 @@ class IndividualPostView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             message = "Server error occurred while editing post"
-            print(message)
+            print(f"{message}. Error: {e}")
             return Response({
                 "success": False,
                 "errors": {
