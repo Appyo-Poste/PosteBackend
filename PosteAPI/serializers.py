@@ -153,19 +153,24 @@ class PostCreateSerializer(serializers.ModelSerializer):
             return serializers.ValidationError("folder does not exist")
         return value
 
-    def validate_url(self, value):
-        url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
-        url_list = re.findall(url_pattern, value)
-        if len(url_list) != 1:
-            raise serializers.ValidationError("invalid url")
-        url = url_list[0]
+    def validate_url(value):
+        parts = value.split()
+        url = None
+        for part in parts:
+            if 'http://' in part or 'https://' in part:
+                url = part
+                break
+            elif '.' in part:
+                url = part
+        if not url:
+            raise serializers.ValidationError("No valid URL found in the text")
         url_validator = URLValidator()
-
         try:
+            if not url.startswith('http://') and not url.startswith('https://'):
+                url = 'http://' + url
             url_validator(url)
         except ValidationError:
-            raise serializers.ValidationError("invalid url")
-
+            raise serializers.ValidationError("Invalid URL")
         return url
 
     def validate_tags(self, value):
