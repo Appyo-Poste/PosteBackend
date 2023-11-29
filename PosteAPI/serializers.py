@@ -153,7 +153,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
             return serializers.ValidationError("folder does not exist")
         return value
 
-    def validate_url(value):
+    def validate_url(self, value):
         parts = value.split()
         url = None
         for part in parts:
