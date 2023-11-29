@@ -4,14 +4,19 @@ from django.forms import URLField
 from rest_framework import serializers
 
 # import models
-from .models import Folder, Post, User, FolderPermission, Tag
+from .models import Folder, FolderPermission, Post, Tag, User
 
 
 # Create serializers here
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name"]  # Username is not required for our purposes
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+        ]  # Username is not required for our purposes
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -26,6 +31,7 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["oldPassword", "newPassword"]
+
 
 class UserCreateSerializer(serializers.ModelSerializer):
     # Allow the serializer to accept name, but not require it
@@ -118,7 +124,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'title', 'description', 'url', 'tags']
+        fields = ["id", "title", "description", "url", "tags"]
 
     def get_tags(self, obj):
         return [tag.name for tag in obj.tags.all()]
@@ -146,7 +152,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
     def validate_folder_id(self, value):
         try:
-            folder = Folder.objects.get(pk=value)
+            Folder.objects.get(pk=value)
         except Folder.DoesNotExist:
             return serializers.ValidationError("folder does not exist")
         return value
@@ -167,18 +173,20 @@ class PostCreateSerializer(serializers.ModelSerializer):
         "This is one tag"
         "This, , , is, , , four, tags" <- Empty entries are ignored
         """
-        tags = [tag.strip() for tag in value.split(', ') if tag.strip()]
+        tags = [tag.strip() for tag in value.split(",") if tag.strip()]
         return tags
 
     def create(self, validated_data):
         folder_id = validated_data.pop("folder_id", None)
         tag_names = validated_data.pop("tags", [])
         folder = Folder.objects.get(pk=folder_id)
-        validated_data.pop('creator', None)
+        validated_data.pop("creator", None)
 
         with transaction.atomic():  # Useful for ensuring all db transactions happen at once
             # user obtained from token, which uses context
-            post = Post.objects.create(folder=folder, creator=self.context['request'].user, **validated_data)
+            post = Post.objects.create(
+                folder=folder, creator=self.context["request"].user, **validated_data
+            )
             if tag_names:
                 tag_list = []
                 for tag_name in tag_names:
@@ -190,16 +198,20 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 class FolderSerializer(serializers.ModelSerializer):
     posts = PostSerializer(many=True, read_only=True, source="post_set")
-    shared_users = UserSerializer(many=True, read_only=True)
+    shared_users = serializers.SerializerMethodField()
     user_permission = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
-        fields = ['id', 'title', 'shared_users', 'posts', 'user_permission']
+        fields = ["id", "title", "shared_users", "posts", "user_permission"]
 
     def get_user_permission(self, obj):
-        user_permissions = self.context.get('user_permissions', {})
+        user_permissions = self.context.get("user_permissions", {})
         return user_permissions.get(obj.id)
+
+    def get_shared_users(self, obj):
+        shared_users = self.context.get("shared_users", {})
+        return shared_users.get(obj.id)
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
@@ -218,7 +230,7 @@ class FolderCreateSerializer(serializers.ModelSerializer):
             return value
 
         def validate_tags(self, value):
-            tags = [tag.strip() for tag in value.split(',') if tag.strip()]
+            tags = [tag.strip() for tag in value.split(",") if tag.strip()]
             return tags
 
     def create(self, validated_data):
@@ -227,7 +239,6 @@ class FolderCreateSerializer(serializers.ModelSerializer):
         folder = Folder(
             title=validated_data["title"],
             creator=validated_data["creator"],
-
         )
 
         if tag_names:
