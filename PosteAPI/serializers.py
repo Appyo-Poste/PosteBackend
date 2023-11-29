@@ -1,7 +1,9 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import transaction
 from django.forms import URLField
 from rest_framework import serializers
+import re
 
 # import models
 from .models import Folder, Post, User, FolderPermission, Tag
@@ -152,11 +154,18 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_url(self, value):
-        url_form_field = URLField()
+        url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+'
+        url_list = re.findall(url_pattern, value)
+        if len(url_list) != 1:
+            raise serializers.ValidationError("invalid url")
+        url = url_list[0]
+        url_validator = URLValidator()
+
         try:
-            url = url_form_field.clean(value)
+            url_validator(url)
         except ValidationError:
             raise serializers.ValidationError("invalid url")
+
         return url
 
     def validate_tags(self, value):
