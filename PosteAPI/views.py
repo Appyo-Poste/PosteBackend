@@ -528,16 +528,20 @@ class PostAPI(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        serializer = PostCreateSerializer(
-            data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.validated_data["creator"] = request.user
-            serializer.save()
-            return Response(status=status.HTTP_201_CREATED)
-        else:
-            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            return response
+        try:
+            serializer = PostCreateSerializer(
+                data=request.data, context={"request": request}
+            )
+            if serializer.is_valid():
+                serializer.validated_data["creator"] = request.user
+                serializer.save()
+                return Response(status=status.HTTP_201_CREATED)
+            else:
+                print("Error: ", serializer.errors)
+                response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return response
+        except Exception as e:
+            print("Error: ", e)
 
 
 class IndividualPostView(APIView):
