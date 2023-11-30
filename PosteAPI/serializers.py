@@ -160,6 +160,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_url(self, value):
+        print(f"Original link: {value}")
         parts = value.split()
         url = None
         for part in parts:
@@ -177,6 +178,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
             url_validator(url)
         except ValidationError:
             raise serializers.ValidationError("Invalid URL")
+        print(f"Validated link: {url}")
         return url
 
     def validate_tags(self, value):
