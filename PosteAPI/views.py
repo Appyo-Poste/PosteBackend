@@ -536,6 +536,7 @@ class PostAPI(APIView):
             serializer.save()
             return Response(status=status.HTTP_201_CREATED)
         else:
+            print("Error: ", serializer.errors)
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             return response
 
