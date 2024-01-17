@@ -35,6 +35,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    "PosteWeb.apps.PostewebConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -68,7 +69,9 @@ ROOT_URLCONF = "PosteBackend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+                 BASE_DIR.joinpath('PosteWeb/templates/PosteWeb')
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
