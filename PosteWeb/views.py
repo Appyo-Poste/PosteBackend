@@ -1,11 +1,12 @@
 from django.contrib.auth import login, authenticate
-
+from django.db.models import Q
 
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.list import ListView
-from PosteAPI.models import Folder, User
+from PosteAPI.models import Folder, User, FolderPermissionEnum
 from PosteWeb.forms import LoginForm
+from django.shortcuts import redirect
 
 import pprint
 # Create your views here.
@@ -19,9 +20,19 @@ class folderPage(ListView):
     model = Folder
 
     def get_queryset(self, **kwargs):
-        user = User.objects.get(email="atreichl@asu.edu")
+        user = self.request.user
         qs = super().get_queryset(**kwargs)
-        return qs.filter(creator=user)
+        qs = qs.filter(Q(creator=user)
+            | Q(
+                folderpermission__user=user,
+                folderpermission__permission__in=[
+                    FolderPermissionEnum.FULL_ACCESS,
+                    FolderPermissionEnum.EDITOR,
+                    FolderPermissionEnum.VIEWER,
+                ],
+            )
+        ).distinct()
+        return qs
 
 """
 Tests and demostars a way to check if a user is longed in or not. 
@@ -47,6 +58,7 @@ def login_page(request):
         if user is not None:
             login(request, user)
             message = f'Hello {user.username}! You have been logged in'
+            return redirect("folder/")
         else:
             message = "login failed"
     return render(request,'Login.html', context={'form': form, 'message': message})
