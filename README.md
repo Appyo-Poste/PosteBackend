@@ -70,18 +70,21 @@ For example:
 
    1. Enable Docker service everytime the instance is started
    2. Manage Docker as a non-root user (for convenience)
+9. Restart the server with the following command:
+`sudo reboot`
 
-9. Clone the backend repository to the EC2 Instance:
+10. Once rebooted (takes a few minutes, see instruction 3 to SSH into console again)
+11. Clone the backend repository to the EC2 Instance:
 
 `git clone https://github.com/Appyo-Poste/PosteBackend.git`
 
-10. Use scp to place the required files in the 'deploy' folder of the repo (shown [here](#SSL-and-Certs))
+12. Use scp to place the required files in the 'deploy' folder of the repo (shown [here](#SSL-and-Certs))
 
 `scp -i <keylocation> <local_file_location> <username>@<ipaddress>:/destination_location`
 
 HINT: CD to the destination, then use `pwd` to get the destination location
 
-11. Run the following command to run the application:
+13. Run the following command to run the application:
 
 `docker compose up --build -d` or `make up`
 
