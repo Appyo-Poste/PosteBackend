@@ -117,14 +117,14 @@ HINT: CD to the destination, then use `pwd` to get the destination location
 `docker compose down --remove-orphans` or `make down`
 
 NOTE: To stop the application when running on the cloud, SSH into the console, navigate to repo location 
-and run above command
+and run above command. Stop the instance from the AWS console.
 
 2. OPTIONAL: To remove all data and start fresh, run the following command. Optional Make command provided for convenience.
 
 `docker compose down --remove-orphans --volumes` or `make clean`
 
 NOTE: This will delete all data, including the database, and will remove all folders, posts, and users. This is useful
-for development, but be mindful of what this means for you.
+for development, but be mindful of what this means for you. 
 
 # Installation & Usage -- Development Server (No Docker, not recommended)
 
