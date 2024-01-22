@@ -21,3 +21,27 @@ form {
     margin-right: auto;
     text-align: left;
 }
+
+.button {
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+    border-radius: 12px;
+}
+
+.button1 {
+    background-color: #16B9BF;
+    color: black;
+}
+
+.button2 {
+    background-color: DarkGray;
+    color: #16B9BF;
+}
