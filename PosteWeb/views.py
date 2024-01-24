@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.list import ListView
 from PosteAPI.models import Folder, User, FolderPermissionEnum
-from PosteWeb.forms import LoginForm
+from PosteWeb.forms import LoginForm, RegisterForm
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
@@ -15,47 +15,59 @@ from django.views import generic
 User = get_user_model()
 
 import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
+
+
 # Create your views here.
 def index(request):
     return HttpResponse("This is the poste index.")
 
+
 """
 Shows a simple list of of folders filter by creator.
 """
+
+
 class folderPage(ListView):
     model = Folder
+    template_name = "folder_list.html"
 
     def get_queryset(self, **kwargs):
         user = self.request.user
         qs = super().get_queryset(**kwargs)
         qs = qs.filter(Q(creator=user)
-            | Q(
-                folderpermission__user=user,
-                folderpermission__permission__in=[
-                    FolderPermissionEnum.FULL_ACCESS,
-                    FolderPermissionEnum.EDITOR,
-                    FolderPermissionEnum.VIEWER,
-                ],
-            )
-        ).distinct()
+                       | Q(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER,
+            ],
+        )
+                       ).distinct()
         return qs
+
 
 """
 Tests and demostars a way to check if a user is longed in or not. 
 All view will have login checking are redirect to the login screen.
 actually site will likely use @login_required instead.
 """
+
+
 def checkLogin(request):
     if not request.user.is_authenticated:
         return HttpResponse("you are not loged in.")
     else:
         return HttpResponse("you are loged in.")
 
+
 def login_page(request):
     form = LoginForm()
     message = ''
     if request.method == 'POST':
-        form  = LoginForm(request.POST)
+        form = LoginForm(request.POST)
         if form.is_valid():
             user = authenticate(
                 username=form.data['username'],
@@ -67,13 +79,22 @@ def login_page(request):
             return redirect("folders")
         else:
             message = "login failed"
-    return render(request,'Login.html', context={'form': form, 'message': message})
+    return render(request, 'Login.html', context={'form': form, 'message': message})
 
 
 def landing_page(request):
     return render(request, 'landing_page.html')
 
-class sign_up(generic.CreateView):
-    form_class = UserCreationForm
-    success_url = reverse_lazy("login/")
-    template_name = "sign_up.html"
+
+def sign_up(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect("login")
+
+    else:
+        form = RegisterForm()
+
+    return render(request, 'sign_up.html', {'form': form})

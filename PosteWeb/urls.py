@@ -6,5 +6,5 @@ urlpatterns = [
     path("login/", login_page, name="login"),
     path("folder/", folderPage.as_view(), name="folders"),
     path("loginCheck/", checkLogin, name="login check"),
-    path("register/", sign_up.as_view(), name="register"),
+    path("register/", sign_up, name="register"),
 ]
