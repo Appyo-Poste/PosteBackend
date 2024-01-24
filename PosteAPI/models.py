@@ -107,13 +107,37 @@ class Folder(models.Model):
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     tags = models.ManyToManyField("Tag", blank=True, related_name="folder")
+    parent = models.ForeignKey(
+        "self", on_delete=models.CASCADE, null=True, related_name="child_folders"
+    )
+
+    def set_parent(self, new_parent):
+        if new_parent and self in new_parent.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+        super(Folder, self).__setattr__("parent", new_parent)
+
+    def __setattr__(self, name, value):
+        if name == "parent":
+            self.set_parent(value)
+        else:
+            super().__setattr__(name, value)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.parent and self in self.parent.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+
+    def get_ancestors(self):
+        ancestors = [self]
+        if self.parent:
+            ancestors.extend(self.parent.get_ancestors())
+        return ancestors
 
     def __str__(self):
         return self.title
-
-    def edit(self, newTitle):
-        self.title = newTitle
-        self.save()
 
 
 class Post(models.Model):
