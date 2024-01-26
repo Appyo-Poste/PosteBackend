@@ -18,7 +18,7 @@ class User(AbstractUser):
         for folder_permission in folder_permissions:
             folder_permission.delete()
 
-    def create_folder(self, title):
+    def create_folder(self, title) -> "Folder":
         folder = Folder.objects.create(title=title, creator=self)
         # Previously, we forced permission creation. By including a check in the save method of the Folder model,
         # this is no longer necessary, as the permission will be created automatically.
@@ -108,7 +108,11 @@ class Folder(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     tags = models.ManyToManyField("Tag", blank=True, related_name="folder")
     parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, related_name="child_folders"
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="child_folders",
+        default=None,
     )
 
     def set_parent(self, new_parent):
@@ -135,6 +139,18 @@ class Folder(models.Model):
         if self.parent:
             ancestors.extend(self.parent.get_ancestors())
         return ancestors
+
+    def move_to_root(self):
+        self.parent = None
+
+    def place_in_folder(self, parent_folder):
+        if not parent_folder:
+            raise ValidationError(
+                "Must specify a parent folder. Perhaps you meant to move_to_root?"
+            )
+        if parent_folder and self in parent_folder.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+        super(Folder, self).__setattr__("parent", parent_folder)
 
     def __str__(self):
         return self.title
