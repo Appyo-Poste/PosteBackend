@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import index, folderPage, checkLogin, login_page, landing_page, sign_up, setting
+from .views import index, folderPage, checkLogin, login_page, landing_page, sign_up, setting, logout_page
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -8,6 +8,6 @@ urlpatterns = [
     path("folder/", folderPage.as_view(), name="folders"),
     path("loginCheck/", checkLogin, name="login check"),
     path("register/", sign_up, name="register"),
-    path("logout/", auth_views.LogoutView.as_view(), name='logout'),
+    path("logout/", logout_page, name='logout'),
     path("setting/", setting, name='settings')
 ]

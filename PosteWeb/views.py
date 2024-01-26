@@ -1,4 +1,4 @@
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.db.models import Q
 
 from django.shortcuts import render
@@ -106,3 +106,8 @@ def sign_up(request):
 @login_required(login_url="/poste/login/")
 def setting(request):
     return render(request, 'setting.html')
+
+
+def logout_page(request):
+    logout(request)
+    return render(request, 'logout.html')
