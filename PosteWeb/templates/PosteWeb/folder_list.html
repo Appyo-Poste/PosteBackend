@@ -1,12 +1,22 @@
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<body>
+<div class="topnav" align="right">
+    <button type="button">
+    <a href="{% url 'settings' %}">Settings</a>
+</button><br>
+</div>
 <h1>Folders 2</h1>
-<ul>
-    {% for object in object_list %}
-    <li>{{ object.title }}</li>
-    <li>{{ object.creator }}</li>
+    <ul>
+        {% for object in object_list %}
+        <li>{{ object.title }}</li>
+        <li>{{ object.creator }}</li>
 
-    <hr/>
+        <hr/>
 
-    {% empty %}
-    <li>No objects yet.</li>
-    {% endfor %}
-</ul>
+        {% empty %}
+        <li>No objects yet.</li>
+        {% endfor %}
+    </ul>
+</body>

@@ -11,6 +11,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from django.urls import reverse_lazy
 from django.views import generic
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 User = get_user_model()
 
@@ -29,7 +31,8 @@ Shows a simple list of of folders filter by creator.
 """
 
 
-class folderPage(ListView):
+class folderPage(LoginRequiredMixin, ListView):
+    login_url = "/poste/login/"
     model = Folder
     template_name = "folder_list.html"
 
@@ -98,3 +101,8 @@ def sign_up(request):
         form = RegisterForm()
 
     return render(request, 'sign_up.html', {'form': form})
+
+
+@login_required(login_url="/poste/login/")
+def setting(request):
+    return render(request, 'setting.html')
