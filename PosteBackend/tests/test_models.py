@@ -155,12 +155,13 @@ class FolderNestedTests(TestCase):
         self.folder4 = self.user.create_folder("Folder 4")
         self.folder5 = self.user.create_folder("Folder 5")
 
-    def test_new_folders_have_no_parent(self):
-        self.assertIsNone(self.folder1.parent)
-        self.assertIsNone(self.folder2.parent)
-        self.assertIsNone(self.folder3.parent)
-        self.assertIsNone(self.folder4.parent)
-        self.assertIsNone(self.folder5.parent)
+    def test_new_folders_have_root_parent(self):
+        root_folder = Folder.objects.get(creator=self.user, is_root=True)
+        self.assertEqual(self.folder1.parent, root_folder)
+        self.assertEqual(self.folder2.parent, root_folder)
+        self.assertEqual(self.folder3.parent, root_folder)
+        self.assertEqual(self.folder4.parent, root_folder)
+        self.assertEqual(self.folder5.parent, root_folder)
 
     def test_can_set_folder_parent(self):
         self.folder2.set_parent(self.folder1)
@@ -171,6 +172,7 @@ class FolderNestedTests(TestCase):
             self.folder1.set_parent(self.folder1)
 
     def test_can_create_chain(self):
+        root_folder = Folder.objects.get(creator=self.user, is_root=True)
         self.folder5.set_parent(self.folder4)
         self.folder4.set_parent(self.folder3)
         self.folder3.set_parent(self.folder2)
@@ -179,7 +181,7 @@ class FolderNestedTests(TestCase):
         self.assertEqual(self.folder4.parent, self.folder3)
         self.assertEqual(self.folder3.parent, self.folder2)
         self.assertEqual(self.folder2.parent, self.folder1)
-        self.assertEqual(self.folder1.parent, None)
+        self.assertEqual(self.folder1.parent, root_folder)
 
     def test_cannot_set_parent_in_descendants(self):
         self.folder5.set_parent(self.folder4)
@@ -204,6 +206,19 @@ class FolderNestedTests(TestCase):
         self.assertEqual(self.folder3.parent, self.folder2)
         self.assertEqual(self.folder4.parent, self.folder5)
         self.assertEqual(self.folder5.parent, self.folder1)
+
+    def test_create_user_creates_root_folder(self):
+        folders = Folder.objects.filter(creator=self.user)
+        self.assertEqual(len(folders), 6)
+        user1 = User.objects.create(
+            email="test1@example.com", username="unused1", password="1securepassword123"
+        )
+        folders = Folder.objects.filter(creator=user1)
+        self.assertEqual(len(folders), 1)
+
+    def test_user_cannot_delete_root_folder(self):
+        root = Folder.objects.get(creator=self.user, is_root=True)
+        self.assertRaises(ValidationError, root.delete)
 
 
 class TagModelTest(TestCase):

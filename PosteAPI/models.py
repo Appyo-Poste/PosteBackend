@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy
 
+from PosteAPI.managers import FolderManager
+
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -104,6 +106,7 @@ class User(AbstractUser):
 
 
 class Folder(models.Model):
+    objects = FolderManager()
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     tags = models.ManyToManyField("Tag", blank=True, related_name="folder")
@@ -111,9 +114,16 @@ class Folder(models.Model):
         "self",
         on_delete=models.CASCADE,
         null=True,
+        blank=True,
         related_name="child_folders",
         default=None,
     )
+    is_root = models.BooleanField(default=False)
+
+    def delete(self, *args, **kwargs):
+        if self.is_root:
+            raise ValidationError("Cannot delete user's root folder.")
+        super().delete(*args, **kwargs)
 
     def set_parent(self, new_parent):
         if new_parent and self in new_parent.get_ancestors():
@@ -131,7 +141,17 @@ class Folder(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if self.parent and self in self.parent.get_ancestors():
+        if self.is_root:
+            root_exists = (
+                Folder.objects.filter(creator=self.creator, is_root=True)
+                .exclude(pk=self.pk)
+                .exists()
+            )
+            if root_exists:  # if a root folder exists for the same user
+                raise ValidationError("A user cannot have more than one root folder.")
+        elif not self.parent:  # if the folder is not root, and has no parent specified
+            raise ValidationError("A non-root folder must have a parent.")
+        elif self in self.parent.get_ancestors():
             raise ValidationError("A folder cannot be an ancestor of itself.")
 
     def get_ancestors(self):
@@ -140,15 +160,10 @@ class Folder(models.Model):
             ancestors.extend(self.parent.get_ancestors())
         return ancestors
 
-    def move_to_root(self):
-        self.parent = None
-
     def place_in_folder(self, parent_folder):
         if not parent_folder:
-            raise ValidationError(
-                "Must specify a parent folder. Perhaps you meant to move_to_root?"
-            )
-        if parent_folder and self in parent_folder.get_ancestors():
+            raise ValidationError("Must specify a parent folder.")
+        if self in parent_folder.get_ancestors():
             raise ValidationError("A folder cannot be an ancestor of itself.")
         super(Folder, self).__setattr__("parent", parent_folder)
 
@@ -161,7 +176,7 @@ class Post(models.Model):
     description = models.TextField(blank=True)
     url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="posts")
     tags = models.ManyToManyField("Tag", blank=True, related_name="posts")
 
     def edit(self, newTitle, newDescription, newURL, newTags):

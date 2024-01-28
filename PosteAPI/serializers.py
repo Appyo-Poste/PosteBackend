@@ -1,9 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
-from django.forms import URLField
 from rest_framework import serializers
-import re
 
 # import models
 from .models import Folder, FolderPermission, Post, Tag, User
@@ -160,25 +158,23 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_url(self, value):
-        print(f"Original link: {value}")
         parts = value.split()
         url = None
         for part in parts:
-            if 'http://' in part or 'https://' in part:
+            if "http://" in part or "https://" in part:
                 url = part
                 break
-            elif '.' in part:
+            elif "." in part:
                 url = part
         if not url:
             raise serializers.ValidationError("No valid URL found in the text")
         url_validator = URLValidator()
         try:
-            if not url.startswith('http://') and not url.startswith('https://'):
-                url = 'http://' + url
+            if not url.startswith("http://") and not url.startswith("https://"):
+                url = "http://" + url
             url_validator(url)
         except ValidationError:
             raise serializers.ValidationError("Invalid URL")
-        print(f"Validated link: {url}")
         return url
 
     def validate_tags(self, value):
@@ -212,14 +208,28 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return post
 
 
+class RecursiveField(serializers.Serializer):
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
+
+
 class FolderSerializer(serializers.ModelSerializer):
     posts = PostSerializer(many=True, read_only=True, source="post_set")
+    child_folders = RecursiveField(many=True, read_only=True)
     shared_users = serializers.SerializerMethodField()
     user_permission = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
-        fields = ["id", "title", "shared_users", "posts", "user_permission"]
+        fields = [
+            "id",
+            "title",
+            "shared_users",
+            "posts",
+            "child_folders",
+            "user_permission",
+        ]
 
     def get_user_permission(self, obj):
         user_permissions = self.context.get("user_permissions", {})
