@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.list import ListView
 from PosteAPI.models import Folder, User, FolderPermissionEnum
-from PosteWeb.forms import LoginForm, RegisterForm
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
@@ -83,6 +83,20 @@ def login_page(request):
         else:
             message = "login failed"
     return render(request, 'Login.html', context={'form': form, 'message': message})
+
+
+@login_required(login_url="/poste/login/")
+def folder_create(request):
+    form = FolderCreate
+    message = ''
+    if request.method == 'POST':
+        form = FolderCreate(request.POST)
+        if form.is_valid():
+            request.user.create_folder(form.data['title'])
+            return redirect("folders")
+        else:
+            message = "folder creation failed"
+    return render(request, 'new_folder.html', context={'form': form, 'message': message})
 
 
 def landing_page(request):

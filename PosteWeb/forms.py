@@ -1,5 +1,5 @@
 from django import forms
-from PosteAPI.models import User
+from PosteAPI.models import User, Folder
 
 
 class LoginForm(forms.Form):
@@ -18,9 +18,9 @@ class RegisterForm(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email']
 
     def clean_email(self):
-        '''
+        """
         Verify email is available.
-        '''
+        """
         email = self.cleaned_data.get('email')
         qs = User.objects.filter(email=email)
         if qs.exists():
@@ -28,9 +28,9 @@ class RegisterForm(forms.ModelForm):
         return email
 
     def clean(self):
-        '''
-        Verify both passwords match.
-        '''
+        """
+        # Verify both passwords match.
+        """
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         password_2 = cleaned_data.get("password_2")
@@ -45,3 +45,9 @@ class RegisterForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class FolderCreate(forms.ModelForm):
+        class Meta:
+            model = Folder
+            fields = ('title',)

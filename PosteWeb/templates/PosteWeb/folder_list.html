@@ -3,9 +3,14 @@
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
 <div class="topnav" align="right">
-    <button type="button">
-    <a href="{% url 'settings' %}">Settings</a>
-</button><br>
+    <button type="button" style="background-color: Transparent; background-repeat: no-repeat; border: none; cursor: pointer; overflow: hidden;">
+    <a href="{% url 'newFolder' %}">New Folder</a>
+</button>
+    <button type="button" style="background-color: Transparent; background-repeat: no-repeat; border: none; cursor: pointer; overflow: hidden;">
+        <a href="{% url 'settings' %}">
+            <img src="{% static 'options.png' %}" alt="Options" style="width:40px;height:40px;">
+        </a>
+</button>
 </div>
 <h1>Folders 2</h1>
     <ul>
