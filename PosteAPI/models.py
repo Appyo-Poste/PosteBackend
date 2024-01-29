@@ -153,6 +153,8 @@ class Folder(models.Model):
             raise ValidationError("A non-root folder must have a parent.")
         elif self in self.parent.get_ancestors():
             raise ValidationError("A folder cannot be an ancestor of itself.")
+        elif self.parent.creator != self.creator:
+            raise ValidationError("A folder cannot be assigned to another user.")
 
     def get_ancestors(self):
         ancestors = [self]
@@ -168,7 +170,7 @@ class Folder(models.Model):
         super(Folder, self).__setattr__("parent", parent_folder)
 
     def __str__(self):
-        return self.title
+        return f"{self.creator} - {self.title}"
 
 
 class Post(models.Model):

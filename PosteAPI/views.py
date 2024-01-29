@@ -92,6 +92,30 @@ class LoginView(APIView):
             )
 
 
+class NewDataView(generics.ListAPIView):
+    authentication_classes = [TokenAuthentication]
+    serializer_class = FolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    token_param = openapi.Parameter(
+        "Authorization",
+        openapi.IN_HEADER,
+        description="The string 'Token' and the user's token. Example:'Token abcd1234",
+        type=openapi.TYPE_STRING,
+        required=True,
+    )
+
+    @swagger_auto_schema(manual_parameters=[token_param])
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        user = request.user
+        root_folder = Folder.objects.get(creator=user, is_root=True)
+        serializer = FolderSerializer(root_folder)
+        return Response({"user_folders": serializer.data})
+
+
 class DataView(generics.ListAPIView):
     authentication_classes = [TokenAuthentication]
     serializer_class = FolderSerializer
@@ -538,7 +562,9 @@ class PostAPI(APIView):
                 return Response(status=status.HTTP_201_CREATED)
             else:
                 print("Error: ", serializer.errors)
-                response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                response = Response(
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
                 return response
         except Exception as e:
             print("Error: ", e)

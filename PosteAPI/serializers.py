@@ -215,29 +215,16 @@ class RecursiveField(serializers.Serializer):
 
 
 class FolderSerializer(serializers.ModelSerializer):
-    posts = PostSerializer(many=True, read_only=True, source="post_set")
-    child_folders = RecursiveField(many=True, read_only=True)
-    shared_users = serializers.SerializerMethodField()
-    user_permission = serializers.SerializerMethodField()
+    child_folders = RecursiveField(many=True)
 
     class Meta:
         model = Folder
-        fields = [
-            "id",
-            "title",
-            "shared_users",
-            "posts",
-            "child_folders",
-            "user_permission",
-        ]
+        fields = ["id", "title", "child_folders"]
 
-    def get_user_permission(self, obj):
-        user_permissions = self.context.get("user_permissions", {})
-        return user_permissions.get(obj.id)
-
-    def get_shared_users(self, obj):
-        shared_users = self.context.get("shared_users", {})
-        return shared_users.get(obj.id)
+    def get_fields(self):
+        fields = super(FolderSerializer, self).get_fields()
+        fields["child_folders"] = FolderSerializer(many=True, read_only=True)
+        return fields
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):

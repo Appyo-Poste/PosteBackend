@@ -9,6 +9,7 @@ from .views import (
     FolderForUser,
     IndividualPostView,
     LoginView,
+    NewDataView,
     PostAPI,
     UserDetail,
     UsersView,
@@ -27,6 +28,9 @@ urlpatterns = [
     path("login/", LoginView.as_view(), name="user-login"),
     # GET to retrieve data: folders and posts to update client
     path("data/", DataView.as_view(), name="user-folders"),
+    # GET to retrieve new style data: folders and posts, but delineating owned and
+    # shared
+    path("newdata/", NewDataView.as_view(), name="new-user-folders"),
     # POST to update user permissions
     path("data/folder/", DataView.as_view(), name="folder"),
     # GET specific folder
