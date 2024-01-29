@@ -1,9 +1,7 @@
-import http
 import json
 
 from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status
@@ -13,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Folder, FolderPermission, FolderPermissionEnum, Post, Tag, User
+from .models import Folder, FolderPermission, Post, Tag, User
 
 # import local data
 from .serializers import (
@@ -92,30 +90,6 @@ class LoginView(APIView):
             )
 
 
-class NewDataView(generics.ListAPIView):
-    authentication_classes = [TokenAuthentication]
-    serializer_class = FolderSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    token_param = openapi.Parameter(
-        "Authorization",
-        openapi.IN_HEADER,
-        description="The string 'Token' and the user's token. Example:'Token abcd1234",
-        type=openapi.TYPE_STRING,
-        required=True,
-    )
-
-    @swagger_auto_schema(manual_parameters=[token_param])
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def list(self, request, *args, **kwargs):
-        user = request.user
-        root_folder = Folder.objects.get(creator=user, is_root=True)
-        serializer = FolderSerializer(root_folder)
-        return Response({"user_folders": serializer.data})
-
-
 class DataView(generics.ListAPIView):
     authentication_classes = [TokenAuthentication]
     serializer_class = FolderSerializer
@@ -129,180 +103,39 @@ class DataView(generics.ListAPIView):
         required=True,
     )
 
-    def get_visible_folders(self):
-        """
-        Retrieve a list of folders that the user has visibility of;
-        the user is either the creator, or has a FolderPermission
-        """
-        user = self.request.user
-        folders = Folder.objects.filter(
-            Q(creator=user)
-            | Q(
-                folderpermission__user=user,
-                folderpermission__permission__in=[
-                    FolderPermissionEnum.FULL_ACCESS,
-                    FolderPermissionEnum.EDITOR,
-                    FolderPermissionEnum.VIEWER,
-                ],
-            )
-        ).distinct()
-        return folders
-
-    def get_shared_users(self, request_user, folders):
-        """
-        Returns a dictionary mapping folder ids to lists of user emails the folder is
-        shared with, excluding the current.
-
-        Only includes lists for folders the current user can share with; if the user
-        cannot share a given folder (they are not the creator and don't have a
-        permission) the list for a given folder id will be empty.
-        """
-        return {
-            folder.id: (
-                list(
-                    FolderPermission.objects.filter(folder=folder)
-                    .exclude(user=request_user)
-                    .values_list("user__email", flat=True)
-                    .distinct()
-                )
-                if request_user.can_share_folder(folder)
-                else []
-            )
-            for folder in folders
-        }
-
     @swagger_auto_schema(manual_parameters=[token_param])
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def list(self, request, *args, **kwargs):
-        get_visible_folders = self.get_visible_folders()
-        context = {
-            "request": request,
-            "user_permissions": self.get_user_permissions(
-                request.user, get_visible_folders
-            ),
-            "shared_users": self.get_shared_users(request.user, get_visible_folders),
-        }
-        serializer = self.get_serializer(
-            get_visible_folders, many=True, context=context
-        )
-        return Response(serializer.data)
-
-    def get_user_permissions(self, user, folders):
-        """
-        Generates a dictionary mapping folder.id to the folder's permission for a given user.
-        If the user is the creator of the folder, they are granted FULL_ACCESS.
-        Otherwise, their permission is determined by the FolderPermission model.
-        :param user: User object for whom to check the permissions
-        :param folders: List of Folder objects to check permissions for
-        :return: Dictionary mapping folder.id to permission
-        """
-        folder_permissions = {}
-
-        for folder in folders:
-            if folder.creator == user:
-                folder_permissions[folder.id] = FolderPermissionEnum.FULL_ACCESS
-            else:
-                try:
-                    permission = FolderPermission.objects.get(
-                        user=user, folder=folder
-                    ).permission
-                except FolderPermission.DoesNotExist:
-                    permission = "none"
-                folder_permissions[folder.id] = permission
-
-        return folder_permissions
-
-    @swagger_auto_schema(
-        operation_description="Updates the permissions for a folder.",
-        # @TODO add request_body
-        # request_body= folderId, email, permission
-        responses={
-            200: openapi.Response(description="The folder permission was created."),
-            201: openapi.Response(description="The folder permission was updated."),
-            403: openapi.Response(
-                description="User does not have permission to update folder permissions.",
-            ),
-        },
-    )
-    def post(self, request, *args, **kwargs):
-        source = request.user
-        data = request.data
-        try:
-            folder = Folder.objects.get(id=data["folderId"])
-        except Folder.DoesNotExist:
-            return Response(
-                {"detail": "Folder not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-        except Folder.MultipleObjectsReturned:
-            return Response(
-                {"detail": "Multiple folders found."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            target = User.objects.get(email=data["email"])
-        except User.DoesNotExist:
-            return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-        except User.MultipleObjectsReturned:
-            return Response(
-                {"detail": "Multiple users found."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        # Verify request user is creator, or has FULL_ACCESS
-        if not source.can_share_folder(folder):
-            return Response(
-                {"detail": "You do not have permission to share this folder."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        if source == target:
-            return Response(
-                {"detail": "You cannot share a folder with yourself."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        # If permission is None, delete the permission
-        elif target == folder.creator:
-            return Response(
-                {"detail": "You cannot modify a creator's access."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        elif data["permission"] == "none":
-            try:
-                source.unshare_folder_with_target(folder, target)
-                return Response(
-                    {"detail": "Permission deleted successfully."},
-                    status=status.HTTP_200_OK,
-                )
-            except FolderPermission.DoesNotExist:
-                return Response(
-                    {"detail": "Share not found."}, status=status.HTTP_404_NOT_FOUND
-                )
+    def get(self, request, folder_id=None):
+        if folder_id:
+            folder = Folder.objects.filter(id=folder_id).first()
+            print("Got specific folder: " + str(folder))
         else:
-            try:
-                permission, created = FolderPermission.objects.update_or_create(
-                    user=target, folder=folder, permission=data["permission"]
-                )
-            except FolderPermission.DoesNotExist:
-                return Response(
-                    {"detail": "Share not found."}, status=status.HTTP_404_NOT_FOUND
-                )
-            except FolderPermission.MultipleObjectsReturned:
-                return Response(
-                    {"detail": "Multiple shares found."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid permission."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            return Response(
-                {"detail": "Folder share successful."},
-                status=status.HTTP_200_OK if created else status.HTTP_201_CREATED,
-            )
+            folder = Folder.objects.filter(creator=request.user, is_root=True).first()
+            print("Got root")
+
+        if not folder:
+            return Response({"error": "Folder not found"}, status=404)
+
+        own_folders = Folder.objects.filter(creator=request.user, parent=folder)
+        own_posts = Post.objects.filter(folder=folder)
+
+        folder_serializer = FolderSerializer(own_folders, many=True)
+        post_serializer = PostSerializer(own_posts, many=True)
+        # All GET will get this information
+        response_dic = {
+            "folders": folder_serializer.data,
+            "posts": post_serializer.data,
+        }
+
+        # If in root, add shared folder
+        if folder.is_root:
+            folder_perms = FolderPermission.objects.filter(
+                user=request.user, permission__isnull=False
+            ).prefetch_related("folder")
+            shared_folders = [perm.folder for perm in folder_perms]
+            shared_folder_serializer = FolderSerializer(shared_folders, many=True)
+            response_dic["shared_folders"] = shared_folder_serializer.data
+
+        return Response(response_dic, status=200)
 
 
 class UsersView(APIView):

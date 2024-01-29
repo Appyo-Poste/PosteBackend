@@ -63,7 +63,7 @@ class User(AbstractUser):
     def can_edit_post(self, post):
         return self.can_edit_folder(post.folder)
 
-    def can_share_folder(self, folder):
+    def has_permissions_to_share_folder(self, folder):
         return (
             self == folder.creator
             or FolderPermission.objects.filter(
@@ -73,8 +73,8 @@ class User(AbstractUser):
             ).exists()
         )
 
-    def can_share_post(self, post):
-        return self.can_share_folder(post.folder)
+    def has_permissions_to_share_post(self, post):
+        return self.has_permissions_to_share_folder(post.folder)
 
     def create_post_and_folder(self, title, description, url, folder_title):
         folder = Folder.objects.create(title=folder_title, creator=self)
@@ -84,12 +84,18 @@ class User(AbstractUser):
         return post, folder
 
     def share_folder_with_user(self, folder, user, permission):
-        if not self.can_share_folder(folder):
-            raise Exception("You do not have permission to share this folder.")
+        if self == user:
+            raise ValidationError("Cannot share folder with yourself")
+        if not self.has_permissions_to_share_folder(folder):
+            raise ValidationError("You do not have permission to share this folder.")
+        if FolderPermission.objects.filter(
+            user=user, folder=folder, permission=permission
+        ).exists():
+            raise ValidationError("Already shared with this user")
         FolderPermission.objects.create(user=user, folder=folder, permission=permission)
 
     def unshare_folder_with_user(self, folder, user):
-        if not self.can_share_folder(folder):
+        if not self.has_permissions_to_share_folder(folder):
             raise Exception("You do not have permission to unshare this folder.")
         folder_permission = FolderPermission.objects.get(user=user, folder=folder)
         if not folder_permission:

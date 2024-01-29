@@ -74,7 +74,7 @@ class FolderModelTest(TestCase):
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         self.assertTrue(self.user.can_edit_folder(folder))
-        self.assertTrue(self.user.can_share_folder(folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(folder))
 
     def test_create_folder(self):
         """
@@ -84,7 +84,7 @@ class FolderModelTest(TestCase):
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         self.assertTrue(self.user.can_edit_folder(folder))
-        self.assertTrue(self.user.can_share_folder(folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(folder))
 
 
 class FolderPermissionModelTest(TestCase):
@@ -138,10 +138,10 @@ class FolderPermissionModelTest(TestCase):
         self.assertTrue(self.user3.can_edit_folder(self.folder))
         self.assertFalse(self.user4.can_edit_folder(self.folder))
         # only full_access can share
-        self.assertTrue(self.user.can_share_folder(self.folder))
-        self.assertTrue(self.user2.can_share_folder(self.folder))
-        self.assertFalse(self.user3.can_share_folder(self.folder))
-        self.assertFalse(self.user4.can_share_folder(self.folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(self.folder))
+        self.assertTrue(self.user2.has_permissions_to_share_folder(self.folder))
+        self.assertFalse(self.user3.has_permissions_to_share_folder(self.folder))
+        self.assertFalse(self.user4.has_permissions_to_share_folder(self.folder))
 
 
 class FolderNestedTests(TestCase):

@@ -208,23 +208,15 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return post
 
 
-class RecursiveField(serializers.Serializer):
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-
 class FolderSerializer(serializers.ModelSerializer):
-    child_folders = RecursiveField(many=True)
+    parent_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
-        fields = ["id", "title", "child_folders"]
+        fields = ["id", "title", "tags", "parent_id"]
 
-    def get_fields(self):
-        fields = super(FolderSerializer, self).get_fields()
-        fields["child_folders"] = FolderSerializer(many=True, read_only=True)
-        return fields
+    def get_parent_id(self, obj):
+        return obj.parent.id if obj.parent else None
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
