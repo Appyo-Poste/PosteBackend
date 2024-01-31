@@ -2,9 +2,9 @@ from django.contrib.auth import login, authenticate, logout
 from django.db.models import Q
 
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
-from PosteAPI.models import Folder, User, FolderPermissionEnum
+from PosteAPI.models import Folder, User, FolderPermissionEnum, Post
 from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
@@ -50,6 +50,29 @@ class folderPage(LoginRequiredMixin, ListView):
         )
                        ).distinct()
         return qs
+
+
+
+class postPage(LoginRequiredMixin, ListView):
+    login_url = "/poste/login/"
+    model = Post
+    template_name = "contents.html"
+
+    def get_queryset(self, **kwargs):
+        folder = Folder.objects.get(pk=self.kwargs['pk'])
+        # checks that use has access to folder
+        qs = super().get_queryset(**kwargs)
+        qs = qs.filter(folder=folder)
+        return qs
+
+    def dispatch(self, *args, **kwargs):
+        user = self.request.user
+        folder = Folder.objects.get(pk=self.kwargs['pk'])
+        # checks that use has access to folder
+        if user.can_view_folder(folder):
+                return super().dispatch(*args, **kwargs)
+        else:
+            return redirect("folders")
 
 
 """

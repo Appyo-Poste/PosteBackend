@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import index, folderPage, checkLogin, login_page, landing_page, sign_up, setting, logout_page, folder_create
+from .views import index, folderPage, checkLogin, login_page, landing_page, sign_up, setting, logout_page, folder_create, postPage
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
     path("logout/", logout_page, name='logout'),
     path("setting/", setting, name='settings'),
     path("newFolder/", folder_create,  name='newFolder'),
+    path("contents/<int:pk>/", postPage.as_view(), name="contents"),
 ]

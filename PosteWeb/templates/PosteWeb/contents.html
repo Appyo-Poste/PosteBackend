@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<body>
+<h1>Posts</h1>
+    <ul>
+        {% for object in object_list %}
+        <p><a href="{{ object.url }}" target="_blank">{{ object.title }}</a></p>
+
+        <hr/>
+
+        {% empty %}
+        <li>No objects yet.</li>
+        {% endfor %}
+    </ul>
+</body>

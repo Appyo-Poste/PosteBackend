@@ -14,9 +14,8 @@
 </div>
 <h1>Folders 2</h1>
     <ul>
-        {% for object in object_list %}
-        <li>{{ object.title }}</li>
-        <li>{{ object.creator }}</li>
+        {% for folder in folder_list %}
+        <li><a href="{% url 'contents' folder.id %}">{{ folder.title }}</a></li>
 
         <hr/>
 
