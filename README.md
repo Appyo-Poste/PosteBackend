@@ -8,7 +8,7 @@ This repository contains the Poste backend server application / API as a Python 
 ---
 
 # Installation & Usage - Docker
-
+## Run on local environment
 1. Clone this repository:
 
 `git clone git@github.com:Appyo-Poste/PosteBackend.git`
@@ -37,6 +37,81 @@ password: admin1234
 ```
 
 ---
+## Run on cloud environment
+Note: These instructions are written for Amazon EC2 running Ubuntu Server
+### Setting up the repository for the first time
+1. Set up your preferred EC2 instance from the AWS console
+
+2. Download the .pem file for your instance (current .pem file find in shared dev team drive)
+
+3. To SSH into EC2, run the following command in console from folder where .pem is located
+
+`ssh -i "[name of keypair file].pem" [username]@[IP address of EC2 server]`<br>
+For example:
+`ssh -i "poste-dev-team.pem" ubuntu@54.225.3.36`
+4. Run the following to update packages
+
+`sudo apt update && sudo apt upgrade`
+
+5. Run the following command to get helpful commands:
+
+`sudo apt-get install build-essential`
+
+6. Install docker on the cloud computer 
+
+        https://docs.docker.com/engine/install/ubuntu/
+7. Verify docker is running by running the following command
+
+`sudo docker run hello-world`
+
+8. Follow the instructions here:
+
+        https://docs.docker.com/engine/install/linux-postinstall/
+
+   1. Enable Docker service everytime the instance is started
+   2. Manage Docker as a non-root user (for convenience)
+9. Restart the server with the following command:
+`sudo reboot`
+
+10. Once rebooted (takes a few minutes, see instruction 3 to SSH into console again)
+11. Clone the backend repository to the EC2 Instance:
+
+`git clone https://github.com/Appyo-Poste/PosteBackend.git`
+
+12. Use scp to place the required files in the 'deploy' folder of the repo (shown [here](#SSL-and-Certs))
+
+`scp -i <keylocation> <local_file_location> <username>@<ipaddress>:/destination_location`
+
+HINT: CD to the destination, then use `pwd` to get the destination location
+
+13. Run the following command to run the application:
+
+`docker compose up --build -d` or `make up`
+
+### Running the application on an environment already set up
+1. Download the .pem file for your instance (current .pem file find in shared dev team drive)
+
+2. To SSH into EC2, run the following command in console from folder where .pem is located
+
+`ssh -i "[name of keypair file].pem" [username]@[IP address of EC2 server]` <br>
+  For example:
+`ssh -i "poste-dev-team.pem" ubuntu@54.225.3.36`
+
+3. Run the following to update packages
+
+`sudo apt update && sudo apt upgrade`
+
+4. Navigate to the repo location. 
+
+    For example: `cd PosteBackend/`
+
+5. Run the following command to update the branch:
+
+`git pull`
+
+6. Run the following command to run the application:
+
+`docker compose up --build -d` or `make up`
 
 ## Stopping the Application - Docker Containers
 
@@ -44,12 +119,15 @@ password: admin1234
 
 `docker compose down --remove-orphans` or `make down`
 
+NOTE: To stop the application when running on the cloud, SSH into the console, navigate to repo location 
+and run above command. Stop the instance from the AWS console.
+
 2. OPTIONAL: To remove all data and start fresh, run the following command. Optional Make command provided for convenience.
 
 `docker compose down --remove-orphans --volumes` or `make clean`
 
 NOTE: This will delete all data, including the database, and will remove all folders, posts, and users. This is useful
-for development, but be mindful of what this means for you.
+for development, but be mindful of what this means for you. 
 
 # Installation & Usage -- Development Server (No Docker, not recommended)
 
