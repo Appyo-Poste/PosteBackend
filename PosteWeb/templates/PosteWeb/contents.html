@@ -3,14 +3,15 @@
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
 <h1>Posts</h1>
+{% if post_list %}
     <ul>
-        {% for object in object_list %}
-        <p><a href="{{ object.url }}" target="_blank">{{ object.title }}</a></p>
+        {% for post in post_list %}
+        <p><a href="{{ post.url }}" target="_blank">{{ post.title }}</a></p>
 
         <hr/>
-
-        {% empty %}
-        <li>No objects yet.</li>
         {% endfor %}
     </ul>
+{% else %}
+<H1>No Contents</H1>
+{% endif %}
 </body>

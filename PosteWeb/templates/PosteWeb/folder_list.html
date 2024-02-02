@@ -2,25 +2,36 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
-<div class="topnav" align="right">
-    <button type="button" style="background-color: Transparent; background-repeat: no-repeat; border: none; cursor: pointer; overflow: hidden;">
-    <a href="{% url 'newFolder' %}">New Folder</a>
-</button>
-    <button type="button" style="background-color: Transparent; background-repeat: no-repeat; border: none; cursor: pointer; overflow: hidden;">
-        <a href="{% url 'settings' %}">
-            <img src="{% static 'options.png' %}" alt="Options" style="width:40px;height:40px;">
-        </a>
-</button>
+<div class="topnav">
+    <a href="{% url 'settings' %}">
+        <img src="{% static 'options.png' %}" alt="Options" style="width:40px;height:40px;">
+    </a>
+    <div class="dropdown">
+        <button class="dropbtn">
+            <img src="{% static 'folder_icon_add.png' %}" alt="New folder" style="width:40px;height:40px;">
+        </button>
+        <div class="dropdown-content">
+            <a href="{% url 'newFolder' %}">New Folder</a>
+        </div>
+    </div>
+
 </div>
-<h1>Folders 2</h1>
-    <ul>
-        {% for folder in folder_list %}
-        <li><a href="{% url 'contents' folder.id %}">{{ folder.title }}</a></li>
+<h1>Folders</h1>
+{% if folder_list %}
+<ul>
+    {% for folder in folder_list %}
+    <li>
+        <p align="center">
+            <a href="{% url 'contents' folder.id %}">
+                <img src="{% static 'folder_icon_new.png' %}" alt="Options" style="width:70px;height:70px;">
+                <br>{{ folder.title }}
+            </a>
+        </p>
 
-        <hr/>
-
-        {% empty %}
-        <li>No objects yet.</li>
-        {% endfor %}
-    </ul>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<H1>No Folders</H1>
+{% endif %}
 </body>
