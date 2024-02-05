@@ -1,5 +1,7 @@
 from django import forms
-from PosteAPI.models import User, Folder
+from django.db.models import Q
+
+from PosteAPI.models import User, Folder, Post, FolderPermissionEnum
 
 
 class LoginForm(forms.Form):
@@ -51,3 +53,25 @@ class FolderCreate(forms.ModelForm):
         class Meta:
             model = Folder
             fields = ('title',)
+
+
+class PostCreate(forms.ModelForm):
+    tags = forms.CharField()
+    class Meta:
+        model = Post
+        fields = ('title', 'description', 'url', 'folder')
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        qs = Folder.objects.filter(Q(creator=user)
+                       | Q(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+            ],
+        )
+                       ).distinct()
+        super(PostCreate, self).__init__(*args, **kwargs)
+        self.fields['folder'].queryset = qs
+

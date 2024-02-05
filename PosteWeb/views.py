@@ -4,8 +4,8 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
-from PosteAPI.models import Folder, User, FolderPermissionEnum, Post
-from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate
+from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
@@ -119,6 +119,30 @@ def folder_create(request):
             return redirect("folders")
         else:
             message = "folder creation failed"
+    return render(request, 'new_folder.html', context={'form': form, 'message': message})
+
+
+@login_required(login_url="/poste/login/")
+def post_create(request):
+    form = PostCreate(user=request.user)
+    message = ''
+    if request.method == 'POST':
+        form = PostCreate(request.POST, user=request.user)
+        if form.is_valid():
+            post = request.user.create_post(form.data['title'], form.data['url'], Folder.objects.get(pk=form.data['folder']))
+            # pulls out the tags of the post
+            tags_in = form.data['tags']
+            tags = [tag.strip() for tag in tags_in.split(",") if tag.strip()]
+            # adds the tags to the post that was created
+            if tags:
+                tag_list = []
+                for tag_name in tags:
+                    tag, _ = Tag.objects.get_or_create(name=tag_name)
+                    tag_list.append(tag)
+                post.tags.set(tag_list)
+            return redirect("folders")
+        else:
+            message = "Post creation failed"
     return render(request, 'new_folder.html', context={'form': form, 'message': message})
 
 
