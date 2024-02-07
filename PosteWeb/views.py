@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
+from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag
 from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate
 from django.shortcuts import redirect
@@ -75,18 +76,17 @@ class postPage(LoginRequiredMixin, ListView):
             return redirect("folders")
 
 
-"""
-Tests and demostars a way to check if a user is longed in or not. 
-All view will have login checking are redirect to the login screen.
-actually site will likely use @login_required instead.
-"""
-
-
-def checkLogin(request):
-    if not request.user.is_authenticated:
-        return HttpResponse("you are not loged in.")
-    else:
-        return HttpResponse("you are loged in.")
+@login_required(login_url="/poste/login/")
+def deleteFolder(request, pk):
+    folder = Folder.objects.get(pk=pk)
+    user = request.user
+    userFolders = Folder.objects.filter(creator=user)
+    pp.pprint(folder.title)
+    pp.pprint(userFolders)
+    if folder in userFolders:
+        pp.pprint("test")
+        folder.delete()
+    return redirect("folders")
 
 
 def login_page(request):

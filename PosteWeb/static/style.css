@@ -64,11 +64,13 @@ form {
     background-color: Transparent;
 }
 
+ul{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 100px));
+}
+
 li {
    list-style-type: none;
-   display: block;
-   width: 5%;
-   float: left;
 }
 
 
@@ -89,7 +91,7 @@ a {
   font-size: 16px;
   border: none;
   outline: none;
-  color: white;
+  color: black;
   padding: 14px 16px;
   background-color: inherit;
   font-family: inherit;

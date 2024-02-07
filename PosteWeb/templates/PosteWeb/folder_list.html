@@ -22,13 +22,19 @@
 <ul>
     {% for folder in folder_list %}
     <li>
-        <p align="center">
+        <div class="dropdown" style="float: left;">
             <a href="{% url 'contents' folder.id %}">
-                <img src="{% static 'folder_icon_new.png' %}" alt="Options" style="width:70px;height:70px;">
-                <br>{{ folder.title }}
+        <button class="dropbtn">
+            <img src="{% static 'folder_icon_new.png' %}" alt="Folder Icon" style="width:70px;height:70px;">
+            <br>{{ folder.title }}
+        </button>
             </a>
-        </p>
-
+        <div class="dropdown-content">
+            <a>Share</a>
+            <a href="{% url 'newFolder' %}">Edit</a>
+            <a href="{% url 'deleteFolder' folder.id %}">Delete</a>
+        </div>
+    </div>
     </li>
     {% endfor %}
 </ul>
