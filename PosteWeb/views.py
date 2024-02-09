@@ -6,7 +6,7 @@ from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag
-from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
@@ -81,12 +81,36 @@ def deleteFolder(request, pk):
     folder = Folder.objects.get(pk=pk)
     user = request.user
     userFolders = Folder.objects.filter(creator=user)
-    pp.pprint(folder.title)
-    pp.pprint(userFolders)
     if folder in userFolders:
         pp.pprint("test")
         folder.delete()
     return redirect("folders")
+
+
+@login_required(login_url="/poste/login/")
+def folder_share(request, pk):
+    form = FolderShare()
+    message = ''
+    folder = Folder.objects.get(pk=pk)
+    user = request.user
+    share_target_user = None
+
+    if user.can_share_folder(folder):
+        if request.method == 'POST':
+            form = FolderShare(request.POST)
+            if form.is_valid():
+                share_target = form.data['email']
+                perm = form.data['permission']
+                try:
+                    share_target_user = User.objects.get(email=share_target)
+                except User.DoesNotExist:
+                    message = "User does not exists"
+                if share_target_user is not None:
+                    user.share_folder_with_user(folder, share_target_user, perm)
+                    return redirect("folders")
+    else:
+        return redirect("folders")
+    return render(request, 'folder_share.html', context={'form': form, 'message': message})
 
 
 def login_page(request):

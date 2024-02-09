@@ -54,6 +54,9 @@ class FolderCreate(forms.ModelForm):
             model = Folder
             fields = ('title',)
 
+class FolderShare(forms.Form):
+    email = forms.EmailField(required=True)
+    permission = forms.ChoiceField(choices=FolderPermissionEnum.choices,)
 
 class PostCreate(forms.ModelForm):
     tags = forms.CharField()

@@ -30,7 +30,7 @@
         </button>
             </a>
         <div class="dropdown-content">
-            <a>Share</a>
+            <a href="{% url 'share' folder.id %}">Share</a>
             <a href="{% url 'newFolder' %}">Edit</a>
             <a href="{% url 'deleteFolder' folder.id %}">Delete</a>
         </div>
