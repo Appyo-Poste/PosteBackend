@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (index, folderPage, login_page, landing_page, sign_up, setting, logout_page, folder_create,
-                    postPage, post_create, deleteFolder, folder_share)
+                    postPage, post_create, deleteFolder, folder_share, FolderShares, delete_share)
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -14,5 +14,7 @@ urlpatterns = [
     path("contents/<int:pk>/", postPage.as_view(), name="contents"),
     path("newPost/", post_create, name="newPost"),
     path("deleteFolder/<int:pk>/", deleteFolder, name="deleteFolder"),
-    path("share/<int:pk>", folder_share, name="share")
+    path("share/<int:pk>", folder_share, name="share"),
+    path("share/edit/<int:pk>", FolderShares.as_view(), name="shareEdit"),
+    path("share/delete/<int:pk>&<int:uid>", delete_share, name="unshare")
 ]

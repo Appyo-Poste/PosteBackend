@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
-from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag
+from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
 from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
@@ -25,11 +25,6 @@ pp = pprint.PrettyPrinter(indent=4)
 # Create your views here.
 def index(request):
     return HttpResponse("This is the poste index.")
-
-
-"""
-Shows a simple list of of folders filter by creator.
-"""
 
 
 class folderPage(LoginRequiredMixin, ListView):
@@ -82,8 +77,18 @@ def deleteFolder(request, pk):
     user = request.user
     userFolders = Folder.objects.filter(creator=user)
     if folder in userFolders:
-        pp.pprint("test")
         folder.delete()
+    return redirect("folders")
+
+
+@login_required(login_url="/poste/login/")
+def delete_share(request, pk, uid):
+    folder = Folder.objects.get(pk=pk)
+    user = User.objects.get(pk=uid)
+    share = FolderPermission.objects.get(folder=folder, user=user)
+    if request.user.can_share_folder(folder):
+        share.delete()
+        return redirect("shareEdit", pk)
     return redirect("folders")
 
 
@@ -111,6 +116,29 @@ def folder_share(request, pk):
     else:
         return redirect("folders")
     return render(request, 'folder_share.html', context={'form': form, 'message': message})
+
+
+class FolderShares(LoginRequiredMixin, ListView):
+    login_url = "/poste/login/"
+    model = FolderPermission
+    template_name = "folder_shares.html"
+
+    def get_queryset(self, **kwargs):
+        folder = Folder.objects.get(pk=self.kwargs['pk'])
+        user = self.request.user
+        qs = super().get_queryset(**kwargs)
+        qs = qs.filter(folder=folder).distinct()
+        qs = qs.exclude(user=user)
+        return qs
+
+    def dispatch(self, *args, **kwargs):
+        user = self.request.user
+        folder = Folder.objects.get(pk=self.kwargs['pk'])
+        # checks that use has access to folder
+        if user.can_share_folder(folder):
+                return super().dispatch(*args, **kwargs)
+        else:
+            return redirect("folders")
 
 
 def login_page(request):

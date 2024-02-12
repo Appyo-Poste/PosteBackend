@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<body>
+<h1>SHARES</h1>
+{% if object_list %}
+    <ul>
+        {% for object in object_list %}
+        <p>{{ object.user.email }}</p>
+        <a href="{% url 'unshare' object.folder.id object.user.id%}">unshare</a>
+        <hr/>
+        {% endfor %}
+    </ul>
+{% else %}
+<H1>No Contents</H1>
+{% endif %}
+</body>
