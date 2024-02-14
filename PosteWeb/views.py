@@ -48,11 +48,16 @@ class folderPage(LoginRequiredMixin, ListView):
         return qs
 
 
-
 class postPage(LoginRequiredMixin, ListView):
     login_url = "/poste/login/"
     model = Post
     template_name = "contents.html"
+
+    def get_context_data(self, **kwargs):
+        context = super(postPage, self).get_context_data(**kwargs)
+        # adds the folder you are viewing as a context object that can be accessed in the html template
+        context["root"] = folder = Folder.objects.get(pk=self.kwargs['pk'])
+        return context
 
     def get_queryset(self, **kwargs):
         folder = Folder.objects.get(pk=self.kwargs['pk'])
@@ -66,7 +71,7 @@ class postPage(LoginRequiredMixin, ListView):
         folder = Folder.objects.get(pk=self.kwargs['pk'])
         # checks that use has access to folder
         if user.can_view_folder(folder):
-                return super().dispatch(*args, **kwargs)
+            return super().dispatch(*args, **kwargs)
         else:
             return redirect("folders")
 
@@ -78,6 +83,17 @@ def deleteFolder(request, pk):
     userFolders = Folder.objects.filter(creator=user)
     if folder in userFolders:
         folder.delete()
+    return redirect("folders")
+
+
+@login_required(login_url="/poste/login/")
+def delete_post(request, pk, pid):
+    folder = Folder.objects.get(pk=pk)
+    post = Post.objects.get(pk=pid)
+    user = request.user
+    permission = FolderPermission.objects.get(folder=folder, user=user)
+    if permission.permission is FolderPermissionEnum.EDITOR or FolderPermissionEnum.FULL_ACCESS:
+        post.delete()
     return redirect("folders")
 
 
@@ -136,7 +152,7 @@ class FolderShares(LoginRequiredMixin, ListView):
         folder = Folder.objects.get(pk=self.kwargs['pk'])
         # checks that use has access to folder
         if user.can_share_folder(folder):
-                return super().dispatch(*args, **kwargs)
+            return super().dispatch(*args, **kwargs)
         else:
             return redirect("folders")
 
@@ -181,7 +197,8 @@ def post_create(request):
     if request.method == 'POST':
         form = PostCreate(request.POST, user=request.user)
         if form.is_valid():
-            post = request.user.create_post(form.data['title'], form.data['url'], Folder.objects.get(pk=form.data['folder']))
+            post = request.user.create_post(form.data['title'], form.data['url'],
+                                            Folder.objects.get(pk=form.data['folder']))
             # pulls out the tags of the post
             tags_in = form.data['tags']
             tags = [tag.strip() for tag in tags_in.split(",") if tag.strip()]
