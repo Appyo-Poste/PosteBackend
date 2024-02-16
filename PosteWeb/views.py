@@ -6,7 +6,7 @@ from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
-from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
@@ -231,6 +231,20 @@ def sign_up(request):
         form = RegisterForm()
 
     return render(request, 'sign_up.html', {'form': form})
+
+
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileEdit(request.POST, instance=request.user)
+
+        if form.is_valid():
+            form.save()
+            return redirect("folders")
+
+    else:
+        form = ProfileEdit(instance=request.user)
+
+    return render(request, 'ProfileEdit.html', {'form': form})
 
 
 @login_required(login_url="/poste/login/")

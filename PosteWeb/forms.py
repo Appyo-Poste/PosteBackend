@@ -3,6 +3,10 @@ from django.db.models import Q
 
 from PosteAPI.models import User, Folder, Post, FolderPermissionEnum
 
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=63)
@@ -40,10 +44,26 @@ class RegisterForm(forms.ModelForm):
             self.add_error("password_2", "Your passwords must match")
         return cleaned_data
 
+class ProfileEdit(forms.ModelForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+
+    def clean_email(self):
+        """
+        Verify email is available.
+        """
+        email = self.cleaned_data.get('email')
+        qs = User.objects.filter(email=email)
+        if qs.exists() and self.instance.email != email:
+            raise forms.ValidationError("email is taken")
+        return email
+
     def save(self, commit=True):
         # Save the provided password in hashed format
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
         return user
