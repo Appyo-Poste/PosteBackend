@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import login, authenticate, logout
 from django.db.models import Q
 
@@ -6,10 +7,10 @@ from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
-from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit, UpdatePasswordForm
 from django.shortcuts import redirect
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.urls import reverse_lazy
 from django.views import generic
 from django.contrib.auth.decorators import login_required
@@ -233,6 +234,7 @@ def sign_up(request):
     return render(request, 'sign_up.html', {'form': form})
 
 
+@login_required(login_url="/poste/login/")
 def edit_profile(request):
     if request.method == 'POST':
         form = ProfileEdit(request.POST, instance=request.user)
@@ -245,6 +247,22 @@ def edit_profile(request):
         form = ProfileEdit(instance=request.user)
 
     return render(request, 'ProfileEdit.html', {'form': form})
+
+
+@login_required(login_url="/poste/login/")
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, "Your password was updated")
+            return redirect("edit_profile")
+        else:
+            messages.error(request, "error: ")
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, "update_password.html", {'form': form})
 
 
 @login_required(login_url="/poste/login/")

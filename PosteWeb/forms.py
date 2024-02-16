@@ -1,6 +1,6 @@
 from django import forms
 from django.db.models import Q
-
+from django.contrib.auth.forms import PasswordChangeForm
 from PosteAPI.models import User, Folder, Post, FolderPermissionEnum
 
 import pprint
@@ -11,6 +11,10 @@ pp = pprint.PrettyPrinter(indent=4)
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=63)
     password = forms.CharField(max_length=63, widget=forms.PasswordInput)
+
+
+class UpdatePasswordForm(PasswordChangeForm):
+    pass
 
 
 class RegisterForm(forms.ModelForm):
