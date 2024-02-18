@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy
 
+from PosteAPI.managers import FolderManager
+
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -18,7 +20,7 @@ class User(AbstractUser):
         for folder_permission in folder_permissions:
             folder_permission.delete()
 
-    def create_folder(self, title):
+    def create_folder(self, title) -> "Folder":
         folder = Folder.objects.create(title=title, creator=self)
         # Previously, we forced permission creation. By including a check in the save method of the Folder model,
         # this is no longer necessary, as the permission will be created automatically.
@@ -61,7 +63,7 @@ class User(AbstractUser):
     def can_edit_post(self, post):
         return self.can_edit_folder(post.folder)
 
-    def can_share_folder(self, folder):
+    def has_permissions_to_share_folder(self, folder):
         return (
             self == folder.creator
             or FolderPermission.objects.filter(
@@ -71,8 +73,8 @@ class User(AbstractUser):
             ).exists()
         )
 
-    def can_share_post(self, post):
-        return self.can_share_folder(post.folder)
+    def has_permissions_to_share_post(self, post):
+        return self.has_permissions_to_share_folder(post.folder)
 
     def create_post_and_folder(self, title, description, url, folder_title):
         folder = Folder.objects.create(title=folder_title, creator=self)
@@ -82,12 +84,18 @@ class User(AbstractUser):
         return post, folder
 
     def share_folder_with_user(self, folder, user, permission):
-        if not self.can_share_folder(folder):
-            raise Exception("You do not have permission to share this folder.")
+        if self == user:
+            raise ValidationError("Cannot share folder with yourself")
+        if not self.has_permissions_to_share_folder(folder):
+            raise ValidationError("You do not have permission to share this folder.")
+        if FolderPermission.objects.filter(
+            user=user, folder=folder, permission=permission
+        ).exists():
+            raise ValidationError("Already shared with this user")
         FolderPermission.objects.create(user=user, folder=folder, permission=permission)
 
     def unshare_folder_with_user(self, folder, user):
-        if not self.can_share_folder(folder):
+        if not self.has_permissions_to_share_folder(folder):
             raise Exception("You do not have permission to unshare this folder.")
         folder_permission = FolderPermission.objects.get(user=user, folder=folder)
         if not folder_permission:
@@ -104,16 +112,71 @@ class User(AbstractUser):
 
 
 class Folder(models.Model):
+    objects = FolderManager()
     title = models.CharField(max_length=100, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     tags = models.ManyToManyField("Tag", blank=True, related_name="folder")
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="child_folders",
+        default=None,
+    )
+    is_root = models.BooleanField(default=False)
+
+    def delete(self, *args, **kwargs):
+        if self.is_root:
+            raise ValidationError("Cannot delete user's root folder.")
+        super().delete(*args, **kwargs)
+
+    def set_parent(self, new_parent):
+        if new_parent and self in new_parent.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+        super(Folder, self).__setattr__("parent", new_parent)
+
+    def __setattr__(self, name, value):
+        if name == "parent":
+            self.set_parent(value)
+        else:
+            super().__setattr__(name, value)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.is_root:
+            root_exists = (
+                Folder.objects.filter(creator=self.creator, is_root=True)
+                .exclude(pk=self.pk)
+                .exists()
+            )
+            if root_exists:  # if a root folder exists for the same user
+                raise ValidationError("A user cannot have more than one root folder.")
+        elif not self.parent:  # if the folder is not root, and has no parent specified
+            raise ValidationError("A non-root folder must have a parent.")
+        elif self in self.parent.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+        elif self.parent.creator != self.creator:
+            raise ValidationError("A folder cannot be assigned to another user.")
+
+    def get_ancestors(self):
+        ancestors = [self]
+        if self.parent:
+            ancestors.extend(self.parent.get_ancestors())
+        return ancestors
+
+    def place_in_folder(self, parent_folder):
+        if not parent_folder:
+            raise ValidationError("Must specify a parent folder.")
+        if self in parent_folder.get_ancestors():
+            raise ValidationError("A folder cannot be an ancestor of itself.")
+        super(Folder, self).__setattr__("parent", parent_folder)
 
     def __str__(self):
-        return self.title
-
-    def edit(self, newTitle):
-        self.title = newTitle
-        self.save()
+        return f"{self.creator} - {self.title}"
 
 
 class Post(models.Model):
@@ -121,7 +184,7 @@ class Post(models.Model):
     description = models.TextField(blank=True)
     url = models.CharField(max_length=1000, blank=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
-    folder = models.ForeignKey(Folder, on_delete=models.CASCADE)
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="posts")
     tags = models.ManyToManyField("Tag", blank=True, related_name="posts")
 
     def edit(self, newTitle, newDescription, newURL, newTags):

@@ -74,7 +74,7 @@ class FolderModelTest(TestCase):
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         self.assertTrue(self.user.can_edit_folder(folder))
-        self.assertTrue(self.user.can_share_folder(folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(folder))
 
     def test_create_folder(self):
         """
@@ -84,7 +84,7 @@ class FolderModelTest(TestCase):
         self.assertEqual(folder.title, "Test Folder")
         self.assertEqual(folder.creator, self.user)
         self.assertTrue(self.user.can_edit_folder(folder))
-        self.assertTrue(self.user.can_share_folder(folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(folder))
 
 
 class FolderPermissionModelTest(TestCase):
@@ -138,10 +138,87 @@ class FolderPermissionModelTest(TestCase):
         self.assertTrue(self.user3.can_edit_folder(self.folder))
         self.assertFalse(self.user4.can_edit_folder(self.folder))
         # only full_access can share
-        self.assertTrue(self.user.can_share_folder(self.folder))
-        self.assertTrue(self.user2.can_share_folder(self.folder))
-        self.assertFalse(self.user3.can_share_folder(self.folder))
-        self.assertFalse(self.user4.can_share_folder(self.folder))
+        self.assertTrue(self.user.has_permissions_to_share_folder(self.folder))
+        self.assertTrue(self.user2.has_permissions_to_share_folder(self.folder))
+        self.assertFalse(self.user3.has_permissions_to_share_folder(self.folder))
+        self.assertFalse(self.user4.has_permissions_to_share_folder(self.folder))
+
+
+class FolderNestedTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="test@example.com", username="unused", password="securepassword123"
+        )
+        self.folder1 = self.user.create_folder("Folder 1")
+        self.folder2 = self.user.create_folder("Folder 2")
+        self.folder3 = self.user.create_folder("Folder 3")
+        self.folder4 = self.user.create_folder("Folder 4")
+        self.folder5 = self.user.create_folder("Folder 5")
+
+    def test_new_folders_have_root_parent(self):
+        root_folder = Folder.objects.get(creator=self.user, is_root=True)
+        self.assertEqual(self.folder1.parent, root_folder)
+        self.assertEqual(self.folder2.parent, root_folder)
+        self.assertEqual(self.folder3.parent, root_folder)
+        self.assertEqual(self.folder4.parent, root_folder)
+        self.assertEqual(self.folder5.parent, root_folder)
+
+    def test_can_set_folder_parent(self):
+        self.folder2.set_parent(self.folder1)
+        self.assertEqual(self.folder2.parent, self.folder1)
+
+    def test_cannot_set_self_as_parent(self):
+        with self.assertRaises(ValidationError):
+            self.folder1.set_parent(self.folder1)
+
+    def test_can_create_chain(self):
+        root_folder = Folder.objects.get(creator=self.user, is_root=True)
+        self.folder5.set_parent(self.folder4)
+        self.folder4.set_parent(self.folder3)
+        self.folder3.set_parent(self.folder2)
+        self.folder2.set_parent(self.folder1)
+        self.assertEqual(self.folder5.parent, self.folder4)
+        self.assertEqual(self.folder4.parent, self.folder3)
+        self.assertEqual(self.folder3.parent, self.folder2)
+        self.assertEqual(self.folder2.parent, self.folder1)
+        self.assertEqual(self.folder1.parent, root_folder)
+
+    def test_cannot_set_parent_in_descendants(self):
+        self.folder5.set_parent(self.folder4)
+        self.folder4.set_parent(self.folder3)
+        self.folder3.set_parent(self.folder2)
+        self.folder2.set_parent(self.folder1)
+        with self.assertRaises(ValidationError):
+            self.folder2.set_parent(self.folder5)
+        with self.assertRaises(ValidationError):
+            self.folder2.set_parent(self.folder4)
+        with self.assertRaises(ValidationError):
+            self.folder2.set_parent(self.folder3)
+
+    def test_can_change_root_of_ancestry(self):
+        self.folder4.set_parent(self.folder3)
+        self.folder3.set_parent(self.folder2)
+        self.folder2.set_parent(self.folder1)
+        self.folder5.set_parent(self.folder1)
+        self.folder4.set_parent(self.folder5)
+        self.folder2.set_parent(self.folder5)
+        self.assertEqual(self.folder2.parent, self.folder5)
+        self.assertEqual(self.folder3.parent, self.folder2)
+        self.assertEqual(self.folder4.parent, self.folder5)
+        self.assertEqual(self.folder5.parent, self.folder1)
+
+    def test_create_user_creates_root_folder(self):
+        folders = Folder.objects.filter(creator=self.user)
+        self.assertEqual(len(folders), 6)
+        user1 = User.objects.create(
+            email="test1@example.com", username="unused1", password="1securepassword123"
+        )
+        folders = Folder.objects.filter(creator=user1)
+        self.assertEqual(len(folders), 1)
+
+    def test_user_cannot_delete_root_folder(self):
+        root = Folder.objects.get(creator=self.user, is_root=True)
+        self.assertRaises(ValidationError, root.delete)
 
 
 class TagModelTest(TestCase):

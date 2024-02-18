@@ -1,9 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
-from django.forms import URLField
 from rest_framework import serializers
-import re
 
 # import models
 from .models import Folder, FolderPermission, Post, Tag, User
@@ -160,25 +158,23 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_url(self, value):
-        print(f"Original link: {value}")
         parts = value.split()
         url = None
         for part in parts:
-            if 'http://' in part or 'https://' in part:
+            if "http://" in part or "https://" in part:
                 url = part
                 break
-            elif '.' in part:
+            elif "." in part:
                 url = part
         if not url:
             raise serializers.ValidationError("No valid URL found in the text")
         url_validator = URLValidator()
         try:
-            if not url.startswith('http://') and not url.startswith('https://'):
-                url = 'http://' + url
+            if not url.startswith("http://") and not url.startswith("https://"):
+                url = "http://" + url
             url_validator(url)
         except ValidationError:
             raise serializers.ValidationError("Invalid URL")
-        print(f"Validated link: {url}")
         return url
 
     def validate_tags(self, value):
@@ -213,21 +209,14 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 
 class FolderSerializer(serializers.ModelSerializer):
-    posts = PostSerializer(many=True, read_only=True, source="post_set")
-    shared_users = serializers.SerializerMethodField()
-    user_permission = serializers.SerializerMethodField()
+    parent_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
-        fields = ["id", "title", "shared_users", "posts", "user_permission"]
+        fields = ["id", "title", "tags", "parent_id"]
 
-    def get_user_permission(self, obj):
-        user_permissions = self.context.get("user_permissions", {})
-        return user_permissions.get(obj.id)
-
-    def get_shared_users(self, obj):
-        shared_users = self.context.get("shared_users", {})
-        return shared_users.get(obj.id)
+    def get_parent_id(self, obj):
+        return obj.parent.id if obj.parent else None
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
