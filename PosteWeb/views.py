@@ -7,7 +7,8 @@ from django.http import HttpResponse, Http404
 from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
-from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit, UpdatePasswordForm
+from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit, \
+    UpdatePasswordForm
 from django.shortcuts import redirect
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import get_user_model, update_session_auth_hash
@@ -37,7 +38,6 @@ class folderPage(LoginRequiredMixin, ListView):
         context = super(folderPage, self).get_context_data(**kwargs)
         # adds the folder you are viewing as a context object that can be accessed in the html template
         context["root"] = Folder.objects.get(creator=self.request.user, is_root=True)
-        pp.pprint(Folder.objects.get(creator=self.request.user, is_root=True))
         return context
 
     def get_queryset(self, **kwargs):
@@ -45,14 +45,16 @@ class folderPage(LoginRequiredMixin, ListView):
         root = Folder.objects.get(creator=user, is_root=True)
         qs = super().get_queryset(**kwargs)
         qs = qs.filter(Q(parent=root)
-                       | Q(
+                       | (Q(
             folderpermission__user=user,
             folderpermission__permission__in=[
                 FolderPermissionEnum.FULL_ACCESS,
                 FolderPermissionEnum.EDITOR,
                 FolderPermissionEnum.VIEWER,
             ],
-        )
+        ) & ~Q(
+            creator=user
+        ))
                        ).distinct()
         return qs
 
@@ -194,10 +196,8 @@ def folder_create(request, fid):
     root = Folder.objects.get(pk=fid)
     if request.method == 'POST':
         form = FolderCreate(request.POST)
-        pp.pprint(root.creator == request.user)
-        pp.pprint(form.is_valid())
         if form.is_valid() and (root.creator == request.user):
-            pp.pprint("creating")
+
             new = request.user.create_folder_child(form.data['title'], root)
             return redirect("folders")
         else:
