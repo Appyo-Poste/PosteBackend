@@ -11,7 +11,7 @@
             <img src="{% static 'folder_icon_add.png' %}" alt="New folder" style="width:40px;height:40px;">
         </button>
         <div class="dropdown-content">
-            <a href="{% url 'newFolder' %}">New Folder</a>
+            <a href="{% url 'newFolder' root.id %}">New Folder</a>
             <a href="{% url 'newPost' %}">New Post</a>
         </div>
     </div>
@@ -32,7 +32,7 @@
         <div class="dropdown-content">
             <a href="{% url 'share' folder.id %}">Share</a>
             <a href="{% url 'shareEdit' folder.id %}">Edit Shares</a>
-            <a href="{% url 'newFolder' %}">Edit</a>
+            <a>Edit</a>
             <a href="{% url 'deleteFolder' folder.id %}">Delete</a>
         </div>
     </div>

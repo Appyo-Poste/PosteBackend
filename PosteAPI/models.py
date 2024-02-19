@@ -30,6 +30,16 @@ class User(AbstractUser):
             )
         return folder
 
+    def create_folder_child(self, title, parent) -> "Folder":
+        folder = Folder.objects.create(title=title, creator=self, parent=parent)
+        # Previously, we forced permission creation. By including a check in the save method of the Folder model,
+        # this is no longer necessary, as the permission will be created automatically.
+        if not FolderPermission.objects.filter(user=self, folder=folder).exists():
+            FolderPermission.objects.create(
+                user=self, folder=folder, permission=FolderPermissionEnum.FULL_ACCESS
+            )
+        return folder
+
     def create_post(self, title, url, folder):
         return Post.objects.create(title=title, url=url, creator=self, folder=folder)
 

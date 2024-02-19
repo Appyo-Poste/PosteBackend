@@ -48,6 +48,7 @@ class RegisterForm(forms.ModelForm):
             self.add_error("password_2", "Your passwords must match")
         return cleaned_data
 
+
 class ProfileEdit(forms.ModelForm):
     email = forms.EmailField(required=True)
 
@@ -73,17 +74,18 @@ class ProfileEdit(forms.ModelForm):
         return user
 
 
-class FolderCreate(forms.ModelForm):
-        class Meta:
-            model = Folder
-            fields = ('title',)
+class FolderCreate(forms.Form):
+    title = forms.CharField(required=True)
+
 
 class FolderShare(forms.Form):
     email = forms.EmailField(required=True)
-    permission = forms.ChoiceField(choices=FolderPermissionEnum.choices,)
+    permission = forms.ChoiceField(choices=FolderPermissionEnum.choices, )
+
 
 class PostCreate(forms.ModelForm):
     tags = forms.CharField()
+
     class Meta:
         model = Post
         fields = ('title', 'description', 'url', 'folder')
@@ -91,14 +93,13 @@ class PostCreate(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')
         qs = Folder.objects.filter(Q(creator=user)
-                       | Q(
+                                   | Q(
             folderpermission__user=user,
             folderpermission__permission__in=[
                 FolderPermissionEnum.FULL_ACCESS,
                 FolderPermissionEnum.EDITOR,
             ],
         )
-                       ).distinct()
+                                   ).distinct()
         super(PostCreate, self).__init__(*args, **kwargs)
         self.fields['folder'].queryset = qs
-

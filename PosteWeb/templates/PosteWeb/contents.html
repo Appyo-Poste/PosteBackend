@@ -2,9 +2,28 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
-<h1>Posts</h1>
-{% if post_list %}
+<h1>{{ root.title }}</h1>
+{% if post_list or folders%}
 <ul>
+    {% for folder in folders %}
+    <li>
+        <div class="dropdown" style="float: left;">
+            <a href="{% url 'contents' folder.id %}">
+        <button class="dropbtn">
+            <img src="{% static 'folder_icon_new.png' %}" alt="Folder Icon" style="width:70px;height:70px;">
+            <br>{{ folder.title }}
+        </button>
+            </a>
+        <div class="dropdown-content">
+            <a href="{% url 'share' folder.id %}">Share</a>
+            <a href="{% url 'shareEdit' folder.id %}">Edit Shares</a>
+            <a href="{% url 'newFolder' %}">Edit</a>
+            <a href="{% url 'deleteFolder' folder.id %}">Delete</a>
+        </div>
+    </div>
+    </li>
+    {% endfor %}
+
     {% for post in post_list %}
     <li>
         <div>

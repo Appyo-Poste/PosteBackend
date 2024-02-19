@@ -33,10 +33,18 @@ class folderPage(LoginRequiredMixin, ListView):
     model = Folder
     template_name = "folder_list.html"
 
+    def get_context_data(self, **kwargs):
+        context = super(folderPage, self).get_context_data(**kwargs)
+        # adds the folder you are viewing as a context object that can be accessed in the html template
+        context["root"] = Folder.objects.get(creator=self.request.user, is_root=True)
+        pp.pprint(Folder.objects.get(creator=self.request.user, is_root=True))
+        return context
+
     def get_queryset(self, **kwargs):
         user = self.request.user
+        root = Folder.objects.get(creator=user, is_root=True)
         qs = super().get_queryset(**kwargs)
-        qs = qs.filter(Q(creator=user)
+        qs = qs.filter(Q(parent=root)
                        | Q(
             folderpermission__user=user,
             folderpermission__permission__in=[
@@ -57,7 +65,9 @@ class postPage(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(postPage, self).get_context_data(**kwargs)
         # adds the folder you are viewing as a context object that can be accessed in the html template
-        context["root"] = folder = Folder.objects.get(pk=self.kwargs['pk'])
+        parent = Folder.objects.get(pk=self.kwargs['pk'])
+        context["root"] = parent
+        context["folders"] = Folder.objects.filter(parent=parent)
         return context
 
     def get_queryset(self, **kwargs):
@@ -178,13 +188,17 @@ def login_page(request):
 
 
 @login_required(login_url="/poste/login/")
-def folder_create(request):
+def folder_create(request, fid):
     form = FolderCreate
     message = ''
+    root = Folder.objects.get(pk=fid)
     if request.method == 'POST':
         form = FolderCreate(request.POST)
-        if form.is_valid():
-            request.user.create_folder(form.data['title'])
+        pp.pprint(root.creator == request.user)
+        pp.pprint(form.is_valid())
+        if form.is_valid() and (root.creator == request.user):
+            pp.pprint("creating")
+            new = request.user.create_folder_child(form.data['title'], root)
             return redirect("folders")
         else:
             message = "folder creation failed"
