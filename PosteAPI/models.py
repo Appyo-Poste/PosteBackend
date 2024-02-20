@@ -137,8 +137,8 @@ class Folder(models.Model):
     is_root = models.BooleanField(default=False)
 
     def delete(self, *args, **kwargs):
-        if self.is_root:
-            raise ValidationError("Cannot delete user's root folder.")
+        if self.is_root and self.creator_id is not None and User.objects.filter(id=self.creator_id).exists():
+            raise ValidationError("Cannot delete user's root folder unless the user is being deleted.")
         super().delete(*args, **kwargs)
 
     def set_parent(self, new_parent):

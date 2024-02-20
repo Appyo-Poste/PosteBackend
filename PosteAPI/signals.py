@@ -10,9 +10,3 @@ from .models import Folder
 def create_root_folder(sender, instance, created, **kwargs):
     if created:
         Folder.objects.create(title="root", creator=instance, is_root=True)
-
-
-@receiver(pre_delete, sender=Folder)
-def prevent_root_folder_deletion(sender, instance, **kwargs):
-    if instance.is_root:
-        raise ValidationError("Cannot delete user's root folder.")

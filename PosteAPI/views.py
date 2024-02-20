@@ -531,11 +531,20 @@ class deleteFolder(APIView):
         try:
             folder = self.get_object(pk)
             if folder is not None:
-                folder.delete()
-                return Response({"success": True}, status=status.HTTP_200_OK)
+                if folder.is_root:
+                    return Response(
+                        {
+                            "success": False,
+                            "Error": "Cannot delete root folder.",
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                else:
+                    folder.delete()
+                    return Response({"success": True}, status=status.HTTP_200_OK)
             else:
                 return Response(
-                    {"success": False, "Error": "folder does not exist."},
+                    {"success": False, "Error": "Folder does not exist."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
         except Exception:
