@@ -65,6 +65,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "PosteBackend.urls"
 
+APPEND_SLASH = True
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
