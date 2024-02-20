@@ -1,5 +1,7 @@
 # Register your models here.
 from django.contrib import admin
+from django.core.checks import messages
+from django.core.exceptions import ValidationError
 
 from .models import Folder, Post, User, FolderPermission, Tag
 
@@ -67,6 +69,34 @@ class FolderAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'creator')
     # order by creator and title alphabetically
     ordering = ['creator', 'title']
+
+    def can_delete_obj(self, obj):
+        return obj.is_root is False or obj.creator_id is None
+
+    def delete_model(self, request, obj):
+        if self.can_delete_obj(obj):
+            super().delete_model(request, obj)
+        else:
+            raise ValidationError("Cannot delete root folder unless the user is being deleted.")
+
+    def delete_queryset(self, request, queryset):
+        deletable_objects = [obj for obj in queryset if self.can_delete_obj(obj)]
+        non_deletable_objects = queryset.exclude(pk__in=[obj.pk for obj in deletable_objects])
+
+        for obj in non_deletable_objects:
+            self.message_user(request, f"Cannot delete root folder: {obj.title}", level=messages.ERROR)
+
+        deletable_queryset = self.model.objects.filter(pk__in=[obj.pk for obj in deletable_objects])
+        deletable_queryset.delete()
+        self.message_user(request, f"Successfully deleted {len(deletable_objects)} folder(s).", level=messages.INFO)
+
+    def delete_selected(self, request, queryset):
+        self.delete_queryset(request=request, queryset=queryset)
+
+    # Assign the new action to the list of actions available
+    actions = [delete_selected]
+
+
 
 
 class FolderPermissionAdmin(admin.ModelAdmin):
