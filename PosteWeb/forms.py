@@ -78,6 +78,18 @@ class FolderCreate(forms.Form):
     title = forms.CharField(required=True)
 
 
+class FolderEdit(forms.ModelForm):
+    class Meta:
+        model = Folder
+        fields = ['title', 'parent']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        qs = Folder.objects.filter(Q(creator=user)).distinct()
+        super(FolderEdit, self).__init__(*args, **kwargs)
+        self.fields['parent'].queryset = qs
+
+
 class FolderShare(forms.Form):
     email = forms.EmailField(required=True)
     permission = forms.ChoiceField(choices=FolderPermissionEnum.choices, )

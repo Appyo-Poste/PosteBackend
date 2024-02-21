@@ -8,7 +8,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
 from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit, \
-    UpdatePasswordForm
+    UpdatePasswordForm, FolderEdit
 from django.shortcuts import redirect
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import get_user_model, update_session_auth_hash
@@ -203,6 +203,23 @@ def folder_create(request, fid):
         else:
             message = "folder creation failed"
     return render(request, 'new_folder.html', context={'form': form, 'message': message})
+
+
+@login_required(login_url="/poste/login/")
+def folder_edit(request, fid, rid):
+    folder = Folder.objects.get(pk=fid)
+    root = Folder.objects.get(pk=rid)
+    if request.method == 'POST':
+        form = FolderEdit(request.POST, instance=folder, user=request.user)
+        if form.is_valid():
+            form.save()
+            if root.is_root:
+                return redirect('folders')
+            else:
+                return redirect('contents', root.id)
+    else:
+        form = FolderEdit(instance=folder, user=request.user)
+    return render(request, 'edit_folder.html', context={'form': form})
 
 
 @login_required(login_url="/poste/login/")

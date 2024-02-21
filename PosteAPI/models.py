@@ -57,6 +57,16 @@ class User(AbstractUser):
     def can_view_post(self, post):
         return self.can_view_folder(post.folder)
 
+    def can_share_folder(self, folder):
+        return (
+                self == folder.creator
+                or FolderPermission.objects.filter(
+            user=self,
+            folder=folder,
+            permission__in=[FolderPermissionEnum.FULL_ACCESS],
+        ).exists()
+        )
+
     def can_edit_folder(self, folder):
         return (
             self == folder.creator
