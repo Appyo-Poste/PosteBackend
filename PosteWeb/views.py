@@ -8,7 +8,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import DeleteView
 from PosteAPI.models import Folder, User, FolderPermissionEnum, Post, Tag, FolderPermission
 from PosteWeb.forms import LoginForm, RegisterForm, FolderCreate, PostCreate, FolderShare, ProfileEdit, \
-    UpdatePasswordForm, FolderEdit
+    UpdatePasswordForm, FolderEdit, PostEdit
 from django.shortcuts import redirect
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import get_user_model, update_session_auth_hash
@@ -231,6 +231,7 @@ def post_create(request):
         if form.is_valid():
             post = request.user.create_post(form.data['title'], form.data['url'],
                                             Folder.objects.get(pk=form.data['folder']))
+
             # pulls out the tags of the post
             tags_in = form.data['tags']
             tags = [tag.strip() for tag in tags_in.split(",") if tag.strip()]
@@ -245,6 +246,44 @@ def post_create(request):
         else:
             message = "Post creation failed"
     return render(request, 'new_folder.html', context={'form': form, 'message': message})
+
+
+@login_required(login_url="/poste/login/")
+def post_edit(request, pid, rid):
+    post = Post.objects.get(pk=pid)
+    root = Folder.objects.get(pk=rid)
+    if request.method == 'POST':
+        form = PostEdit(request.POST, instance=post, user=request.user)
+        permission = FolderPermission.objects.get(folder=root, user=request.user)
+        if permission.permission is FolderPermissionEnum.EDITOR or FolderPermissionEnum.FULL_ACCESS:
+            if form.is_valid():
+                post.title = form.data['title']
+                post.url = form.data['url']
+                post.folder = Folder.objects.get(pk=form.data['folder'])
+                post.description = form.data['description']
+                post.save()
+
+                # pulls out the tags of the post
+                tags_in = form.data['tags']
+                tags = [tag.strip() for tag in tags_in.split(",") if tag.strip()]
+                # adds the tags to the post that was created
+                if tags:
+                    tag_list = []
+                    for tag_name in tags:
+                        tag, _ = Tag.objects.get_or_create(name=tag_name)
+                        tag_list.append(tag)
+                    post.tags.set(tag_list)
+                else:
+                    post.tags.clear()
+                if root.is_root:
+                    return redirect('folders')
+                else:
+                    return redirect('contents', root.id)
+        else:
+            return HttpResponse('Unauthorized', status=401)
+    else:
+        form = PostEdit(instance=post, user=request.user)
+    return render(request, 'edit_post.html', context={'form': form})
 
 
 def landing_page(request):

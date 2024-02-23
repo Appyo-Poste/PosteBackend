@@ -29,6 +29,7 @@
         <div>
             <a href="{{ post.url }}" target="_blank">{{ post.title }}</a>
             <a href="{% url 'delete_post' root.id post.id%}">Delete</a>
+            <a href="{% url 'post_edit' post.id root.id %}">Edit</a>
         </div>
 
         <hr/>

@@ -96,7 +96,7 @@ class FolderShare(forms.Form):
 
 
 class PostCreate(forms.ModelForm):
-    tags = forms.CharField()
+    tags = forms.CharField(required=False)
 
     class Meta:
         model = Post
@@ -115,3 +115,30 @@ class PostCreate(forms.ModelForm):
                                    ).distinct()
         super(PostCreate, self).__init__(*args, **kwargs)
         self.fields['folder'].queryset = qs
+
+
+class PostEdit(forms.ModelForm):
+    tags = forms.CharField(required=False)
+
+    class Meta:
+        model = Post
+        fields = ('title', 'description', 'url', 'folder')
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')
+        qs = Folder.objects.filter(Q(creator=user)
+                                   | Q(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+                FolderPermissionEnum.EDITOR,
+            ],
+        )
+                                   ).distinct()
+        super(PostEdit, self).__init__(*args, **kwargs)
+        self.fields['folder'].queryset = qs
+        if self.instance.tags.exists():
+            current_tags = ""
+            for old_tag in self.instance.tags.all():
+                current_tags += (old_tag.name + ", ")
+            self.fields['tags'].initial = current_tags
