@@ -69,6 +69,7 @@ class postPage(LoginRequiredMixin, ListView):
         # adds the folder you are viewing as a context object that can be accessed in the html template
         parent = Folder.objects.get(pk=self.kwargs['pk'])
         context["root"] = parent
+        context["back"] = parent.parent
         context["folders"] = Folder.objects.filter(parent=parent)
         return context
 
@@ -82,11 +83,13 @@ class postPage(LoginRequiredMixin, ListView):
     def dispatch(self, *args, **kwargs):
         user = self.request.user
         folder = Folder.objects.get(pk=self.kwargs['pk'])
+        if folder.is_root or not FolderPermission.objects.filter(user=user, folder=folder).exists:
+            return redirect("folders")
         # checks that use has access to folder
         if user.can_view_folder(folder):
             return super().dispatch(*args, **kwargs)
         else:
-            return redirect("folders")
+            return HttpResponse('Unauthorized', status=401)
 
 
 @login_required(login_url="/poste/login/")
@@ -96,7 +99,9 @@ def deleteFolder(request, pk):
     userFolders = Folder.objects.filter(creator=user)
     if folder in userFolders:
         folder.delete()
-    return redirect("folders")
+        return redirect("folders")
+    else:
+        return HttpResponse('Unauthorized', status=401)
 
 
 @login_required(login_url="/poste/login/")
@@ -107,7 +112,9 @@ def delete_post(request, pk, pid):
     permission = FolderPermission.objects.get(folder=folder, user=user)
     if permission.permission is FolderPermissionEnum.EDITOR or FolderPermissionEnum.FULL_ACCESS:
         post.delete()
-    return redirect("folders")
+        return redirect("folders")
+    else:
+        return HttpResponse('Unauthorized', status=401)
 
 
 @login_required(login_url="/poste/login/")
@@ -118,7 +125,7 @@ def delete_share(request, pk, uid):
     if request.user.can_share_folder(folder):
         share.delete()
         return redirect("shareEdit", pk)
-    return redirect("folders")
+    return HttpResponse('Unauthorized', status=401)
 
 
 @login_required(login_url="/poste/login/")
@@ -143,7 +150,7 @@ def folder_share(request, pk):
                     user.share_folder_with_user(folder, share_target_user, perm)
                     return redirect("folders")
     else:
-        return redirect("folders")
+        return HttpResponse('Unauthorized', status=401)
     return render(request, 'folder_share.html', context={'form': form, 'message': message})
 
 
@@ -160,6 +167,13 @@ class FolderShares(LoginRequiredMixin, ListView):
         qs = qs.exclude(user=user)
         return qs
 
+    def get_context_data(self, **kwargs):
+        context = super(FolderShares, self).get_context_data(**kwargs)
+        # adds the folder you are viewing as a context object that can be accessed in the html template
+        folder = Folder.objects.get(pk=self.kwargs['pk'])
+        context["back"] = folder.parent
+        return context
+
     def dispatch(self, *args, **kwargs):
         user = self.request.user
         folder = Folder.objects.get(pk=self.kwargs['pk'])
@@ -167,7 +181,7 @@ class FolderShares(LoginRequiredMixin, ListView):
         if user.can_share_folder(folder):
             return super().dispatch(*args, **kwargs)
         else:
-            return redirect("folders")
+            return HttpResponse('Unauthorized', status=401)
 
 
 def login_page(request):

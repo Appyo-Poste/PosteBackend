@@ -2,6 +2,14 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
+<div class="topnav">
+    <a href="{% url 'contents' back.id %}" style="float: left;">
+            back
+    </a>
+    <a href="{% url 'folders' %}" style="float: left;">
+        home
+    </a>
+</div>
 <h1>{{ root.title }}</h1>
 {% if post_list or folders%}
 <ul>
