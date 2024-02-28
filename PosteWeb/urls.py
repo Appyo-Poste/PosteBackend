@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (index, folderPage, login_page, landing_page, sign_up, setting, logout_page, folder_create,
                     postPage, post_create, deleteFolder, folder_share, FolderShares, delete_share, delete_post,
-                    edit_profile, change_password, folder_edit, post_edit)
+                    edit_profile, change_password, folder_edit, post_edit, error)
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -22,5 +22,6 @@ urlpatterns = [
     path("profile/edit/", edit_profile, name="edit_profile"),
     path("profile/password/", change_password, name="password"),
     path("folder/edit/<int:fid>&<int:rid>/", folder_edit, name="folder_edit"),
-    path("post/edit/<int:pid>&<int:rid>/", post_edit, name="post_edit")
+    path("post/edit/<int:pid>&<int:rid>/", post_edit, name="post_edit"),
+    path("error/<str:exception>/", error, name="error")
 ]

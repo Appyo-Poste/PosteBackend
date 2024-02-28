@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<H1>Error</H1>
+<h3>{{ http_error }}</h3>
+<p>{{ message }}</p>
+
+<button type="button" class="button button1">
+    <a href="{% url 'folders' %}">Return Home</a>
+</button>
+
+{% endblock content %}

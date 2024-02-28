@@ -89,7 +89,7 @@ class postPage(LoginRequiredMixin, ListView):
         if user.can_view_folder(folder):
             return super().dispatch(*args, **kwargs)
         else:
-            return HttpResponse('Unauthorized', status=401)
+            return redirect("error", "401 Unauthorized, You don't have access to view this folder")
 
 
 @login_required(login_url="/poste/login/")
@@ -101,7 +101,7 @@ def deleteFolder(request, pk):
         folder.delete()
         return redirect("folders")
     else:
-        return HttpResponse('Unauthorized', status=401)
+        return redirect("error", "401 Unauthorized, You don't have access to delete this folder")
 
 
 @login_required(login_url="/poste/login/")
@@ -114,7 +114,7 @@ def delete_post(request, pk, pid):
         post.delete()
         return redirect("folders")
     else:
-        return HttpResponse('Unauthorized', status=401)
+        return redirect("error", "401 Unauthorized, You don't have access to delete this posts in this folder")
 
 
 @login_required(login_url="/poste/login/")
@@ -125,7 +125,7 @@ def delete_share(request, pk, uid):
     if request.user.can_share_folder(folder):
         share.delete()
         return redirect("shareEdit", pk)
-    return HttpResponse('Unauthorized', status=401)
+    return redirect("error", "401 Unauthorized, You don't have the right to change sharing of this folder")
 
 
 @login_required(login_url="/poste/login/")
@@ -150,7 +150,7 @@ def folder_share(request, pk):
                     user.share_folder_with_user(folder, share_target_user, perm)
                     return redirect("folders")
     else:
-        return HttpResponse('Unauthorized', status=401)
+        return redirect("error", "401 Unauthorized, You don't have the right to share this folder")
     return render(request, 'folder_share.html', context={'form': form, 'message': message})
 
 
@@ -181,7 +181,7 @@ class FolderShares(LoginRequiredMixin, ListView):
         if user.can_share_folder(folder):
             return super().dispatch(*args, **kwargs)
         else:
-            return HttpResponse('Unauthorized', status=401)
+            return redirect("error", "401 Unauthorized, You don't have access to view this folder shares")
 
 
 def login_page(request):
@@ -294,7 +294,7 @@ def post_edit(request, pid, rid):
                 else:
                     return redirect('contents', root.id)
         else:
-            return HttpResponse('Unauthorized', status=401)
+            return redirect("error", "401 Unauthorized, You don't have the right to edit posts in this folder")
     else:
         form = PostEdit(instance=post, user=request.user)
     return render(request, 'edit_post.html', context={'form': form})
@@ -357,3 +357,10 @@ def setting(request):
 def logout_page(request):
     logout(request)
     return render(request, 'logout.html')
+
+
+def error(request, exception):
+    info = exception.split(",")
+    http_error = info[0]
+    message = info[1]
+    return render(request, 'error.html', context={'message': message, 'http_error': http_error})
