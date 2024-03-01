@@ -38,6 +38,33 @@
     </div>
     </li>
     {% endfor %}
+
+    {% for shared in shared %}
+    <li>
+        <div class="dropdown" style="float: left;">
+            <a href="{% url 'contents' shared.id %}">
+        <button class="dropbtn">
+            <img src="{% static 'folder_icon_new.png' %}" alt="Folder Icon" style="width:70px;height:70px;">
+            <br>{{ shared.title }}
+        </button>
+            </a>
+    </div>
+    </li>
+    {% endfor %}
+<!--
+    {% for post in posts %}
+    <li>
+        <div>
+            <a href="{{ post.url }}" target="_blank">{{ post.title }}</a>
+            <a href="{% url 'delete_post' root.id post.id%}">Delete</a>
+            <a href="{% url 'post_edit' post.id root.id %}">Edit</a>
+        </div>
+
+        <hr/>
+    </li>
+
+    {% endfor %}
+    -->
 </ul>
 {% else %}
 <H1>No Folders</H1>

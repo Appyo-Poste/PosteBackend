@@ -38,6 +38,19 @@ class folderPage(LoginRequiredMixin, ListView):
         context = super(folderPage, self).get_context_data(**kwargs)
         # adds the folder you are viewing as a context object that can be accessed in the html template
         context["root"] = Folder.objects.get(creator=self.request.user, is_root=True)
+        user = self.request.user
+        qs = Folder.objects.filter((Q(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.EDITOR,
+                FolderPermissionEnum.VIEWER,
+            ],
+        ) & ~Q(
+            creator=user
+        ))
+                       ).distinct()
+        context["shared"] = qs
+        #context["posts"] = Post.objects.filter(folder=context["root"])
         return context
 
     def get_queryset(self, **kwargs):
@@ -49,8 +62,6 @@ class folderPage(LoginRequiredMixin, ListView):
             folderpermission__user=user,
             folderpermission__permission__in=[
                 FolderPermissionEnum.FULL_ACCESS,
-                FolderPermissionEnum.EDITOR,
-                FolderPermissionEnum.VIEWER,
             ],
         ) & ~Q(
             creator=user
@@ -71,6 +82,7 @@ class postPage(LoginRequiredMixin, ListView):
         context["root"] = parent
         context["back"] = parent.parent
         context["folders"] = Folder.objects.filter(parent=parent)
+        #pp.pprint(FolderPermission.objects.get(user=self.request.user, folder=parent))
         return context
 
     def get_queryset(self, **kwargs):
