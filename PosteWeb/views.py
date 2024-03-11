@@ -203,7 +203,7 @@ def login_page(request):
         form = LoginForm(request.POST)
         if form.is_valid():
             user = authenticate(
-                username=form.data['username'],
+                username=form.data['email'],
                 password=form.cleaned_data['password']
             )
         if user is not None:
@@ -321,7 +321,10 @@ def sign_up(request):
         form = RegisterForm(request.POST)
 
         if form.is_valid():
-            form.save()
+            new_user = form.save(commit=False)
+            password = form.cleaned_data['password']
+            new_user.set_password(password)
+            new_user.save()
             return redirect("login")
 
     else:

@@ -1,11 +1,24 @@
-{% extends 'base.html' %}
-{% block content %}
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<html>
+<head>
+    <title>Poste</title>
+</head>
+<body class="center">
+<img src="{% static 'Poste.png' %}" alt="PosteLogo" style="width:178px;height:76px;" align="left">
+<br><br><br><br>
 <div class="form">
     <p>{{ message }}</p>
+    <p>Find, retrieve, and save. Simple as that.</p>
+    <br>
+    <h2>Log In</h2>
     <form method="post">
         {{ form.as_p }}
         {% csrf_token %}
-        <button type="submit" >login</button>
+        <input type="submit" value="Get Started">
     </form>
+    <p>Don't have an account? <a href="{% url 'register' %}" style="color:blue">Sign up</a></p>
 </div>
-{% endblock content %}
+</body>
+</html>
