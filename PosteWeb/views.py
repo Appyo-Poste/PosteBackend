@@ -107,11 +107,15 @@ class postPage(LoginRequiredMixin, ListView):
 @login_required(login_url="/poste/login/")
 def deleteFolder(request, pk):
     folder = Folder.objects.get(pk=pk)
+    parent = folder.parent
     user = request.user
     userFolders = Folder.objects.filter(creator=user)
     if folder in userFolders:
         folder.delete()
-        return redirect("folders")
+        if parent.is_root:
+            return redirect("folders")
+        else:
+            return redirect("contents", parent.id)
     else:
         return redirect("error", "401 Unauthorized, You don't have access to delete this folder")
 
@@ -225,7 +229,10 @@ def folder_create(request, fid):
         if form.is_valid() and (root.creator == request.user):
 
             new = request.user.create_folder_child(form.data['title'], root)
-            return redirect("folders")
+            if root.is_root:
+                return redirect("folders")
+            else:
+                return redirect("contents", root.id)
         else:
             message = "folder creation failed"
     return render(request, 'new_folder.html', context={'form': form, 'message': message})

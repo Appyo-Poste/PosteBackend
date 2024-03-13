@@ -3,14 +3,25 @@
 <link rel="stylesheet" href="{% static 'style.css' %}">
 <body>
 <div class="topnav">
-    <a href="{% url 'contents' back.id %}" style="float: left;">
-            back
+    <a href="{% url 'contents' back.id %}" style="float: left; margin: auto;">
+        <img src="{% static 'Arrow_left.png' %}" alt="Back" >
     </a>
     <a href="{% url 'folders' %}" style="float: left;">
-        home
+        main menu
     </a>
+    <div class="dropdown" style="float: left;">
+        <button class="dropbtn">
+            <img src="{% static 'Add_ring@2x.png' %}" alt="New folder" style="width:30px;height:30px;">
+        </button>
+        <div class="dropdown-content">
+            <a href="{% url 'newFolder' root.id %}">New Folder</a>
+            <a href="{% url 'newPost' %}">New Post</a>
+        </div>
+    </div>
 </div>
-<h1>{{ root.title }}</h1>
+<div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+    <h1>{{ root.title }}</h1><p>({{ post_list.count }} files)</p>
+</div>
 {% if post_list or folders%}
 <ul>
     {% for folder in folders %}
@@ -31,16 +42,26 @@
     </div>
     </li>
     {% endfor %}
-
+</ul>
+<div>
+    <p>File Selection</p>
+</div>
+<ul class="ul1">
     {% for post in post_list %}
     <li>
-        <div>
-            <a href="{{ post.url }}" target="_blank">{{ post.title }}</a>
-            <a href="{% url 'delete_post' root.id post.id%}">Delete</a>
-            <a href="{% url 'post_edit' post.id root.id %}">Edit</a>
-        </div>
+        <div class="dropdown" style="float: left;">
+            <a href="{{ post.url }}" target="_blank">
+                <button class="dropbtn">
+                    <img src="{% static 'File@3x.png' %}" alt="Pose Icon" style="width:70px;height:70px;">
+                    <br>{{ post.title }}
+                </button>
+            </a>
+            <div class="dropdown-content">
+                <a href="{% url 'delete_post' root.id post.id%}">Delete</a>
+                <a href="{% url 'post_edit' post.id root.id %}">Edit</a>
+            </div>
 
-        <hr/>
+        </div>
     </li>
 
     {% endfor %}
