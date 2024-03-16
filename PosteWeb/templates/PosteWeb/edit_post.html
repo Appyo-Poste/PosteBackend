@@ -1,12 +1,27 @@
-{% extends 'base.html' %}
-{% block content %}
-<h1>Edit Post</h1>
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<html>
+<head>
+    <title>Poste</title>
+</head>
+<body>
+<div class="topnav" style="background-color: white;">
+    <p style="padding: 14px 16px;font-size: 24px;float:left;">Edit Post</p>
+    <div>
+        <img src="{% static 'Poste Final Logo@2x-8.png' %}" alt="PosteLogo" style="width:57.65px;height:100px;float:right;">
+    </div>
+
+</div>
+<br>
 <div class="form">
     <p>{{ message }}</p>
     <form method="post">
         {{ form.as_p }}
         {% csrf_token %}
-        <button type="submit" >Save</button>
+        <button type="submit" class="button button1">save</button>
+        <button type="reset" class="button button2">reset</button>
     </form>
 </div>
-{% endblock content %}
+</body>
+</html>

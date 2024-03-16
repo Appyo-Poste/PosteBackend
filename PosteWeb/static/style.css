@@ -45,6 +45,18 @@ input[type=submit] {
     cursor: pointer;
 }
 
+textarea {
+    width: 100%;
+    padding: 12px 20px;
+    margin; 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    box-sizing: border-box;
+    height: 150px;
+    resize: none;
+}
+
 form {
     display: inline-block;
     margin-left: auto;
@@ -72,8 +84,8 @@ form {
 }
 
 .button2 {
-    background-color: DarkGray;
-    color: #16B9BF;
+    background-color: #357497;
+    color: white;
 }
 
 .topnav {
