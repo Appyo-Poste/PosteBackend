@@ -1,12 +1,54 @@
-{% extends 'base.html' %}
-{% block content %}
-<h1>Edit folder</h1>
+<!DOCTYPE html>
+{% load static %}
+<link rel="stylesheet" href="{% static 'style.css' %}">
+<html>
+<head>
+    <title>Edit Folder</title>
+</head>
+<body>
+<div class="topnav" style="background-color: white;">
+    <p style="padding: 14px 16px;font-size: 24px;float:left;">Edit Folder</p>
+    <div>
+        <img src="{% static 'Poste Final Logo@2x-8.png' %}" alt="PosteLogo"
+             style="width:57.65px;height:100px;float:right;">
+    </div>
+
+</div>
+<br>
 <div class="form">
     <p>{{ message }}</p>
     <form method="post">
         {{ form.as_p }}
         {% csrf_token %}
-        <button type="submit" >Save</button>
+        <button type="submit" class="button button1">save</button>
+        <button type="reset" class="button button2">reset</button>
     </form>
 </div>
-{% endblock content %}
+<h1 style="float:center;">Shared With</h1>
+{% if shares %}
+<ul>
+    {% for object in shares %}
+    <li>
+        <div class="listItem">
+            <div style="width: 10%; padding-left: 15px;">
+                <p>{{ object.user.email }}</p>
+            </div>
+            <p>{{ object.permission }}</p>
+            <P style="padding-right: 15px;">
+                <a href="{% url 'unshare' object.folder.id object.user.id%}">
+                    <img src="{% static 'Close_round_light@3x.png' %}" alt="Remove" style="width:20px;height:20px;">
+                </a>
+            </P>
+
+        </div>
+
+        <br>
+    </li>
+
+    {% endfor %}
+</ul>
+{% else %}
+<H1>No Contents</H1>
+{% endif %}
+</body>
+</html>

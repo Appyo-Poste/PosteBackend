@@ -23,7 +23,7 @@
     <h1>{{ root.title }}</h1><p>({{ post_list.count }} files)</p>
 </div>
 {% if post_list or folders%}
-<ul>
+<ul class="Folders">
     {% for folder in folders %}
     <li>
         <div class="dropdown" style="float: left;">

@@ -242,17 +242,24 @@ def folder_create(request, fid):
 def folder_edit(request, fid, rid):
     folder = Folder.objects.get(pk=fid)
     root = Folder.objects.get(pk=rid)
-    if request.method == 'POST':
-        form = FolderEdit(request.POST, instance=folder, user=request.user)
-        if form.is_valid():
-            form.save()
-            if root.is_root:
-                return redirect('folders')
-            else:
-                return redirect('contents', root.id)
+    user = request.user
+    if user.can_edit_folder(folder):
+        qs = FolderPermission.objects.filter(folder=folder).distinct()
+        qs = qs.exclude(user=user)
+        pp.pprint(qs)
+        if request.method == 'POST':
+            form = FolderEdit(request.POST, instance=folder, user=request.user)
+            if form.is_valid():
+                form.save()
+                if root.is_root:
+                    return redirect('folders')
+                else:
+                    return redirect('contents', root.id)
+        else:
+            form = FolderEdit(instance=folder, user=request.user)
+        return render(request, 'edit_folder.html', context={'form': form, "shares": qs})
     else:
-        form = FolderEdit(instance=folder, user=request.user)
-    return render(request, 'edit_folder.html', context={'form': form})
+        return redirect("error", "401 Unauthorized, You don't have the right to edit this folder")
 
 
 @login_required(login_url="/poste/login/")
