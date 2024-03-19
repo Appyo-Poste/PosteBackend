@@ -12,6 +12,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def unshare_folder_with_target(self, folder, target):
         folder_permissions = FolderPermission.objects.filter(user=target, folder=folder)
@@ -125,10 +126,17 @@ class Folder(models.Model):
         default=None,
     )
     is_root = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def delete(self, *args, **kwargs):
-        if self.is_root and self.creator_id is not None and User.objects.filter(id=self.creator_id).exists():
-            raise ValidationError("Cannot delete user's root folder unless the user is being deleted.")
+        if (
+            self.is_root
+            and self.creator_id is not None
+            and User.objects.filter(id=self.creator_id).exists()
+        ):
+            raise ValidationError(
+                "Cannot delete user's root folder unless the user is being deleted."
+            )
         super().delete(*args, **kwargs)
 
     def set_parent(self, new_parent):
@@ -186,6 +194,7 @@ class Post(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="posts")
     tags = models.ManyToManyField("Tag", blank=True, related_name="posts")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def edit(self, newTitle, newDescription, newURL, newTags):
         self.title = newTitle

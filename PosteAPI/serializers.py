@@ -124,7 +124,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ["id", "title", "description", "url", "tags"]
+        fields = ["id", "title", "description", "url", "tags", "created_at"]
 
     def get_tags(self, obj):
         return [tag.name for tag in obj.tags.all()]
@@ -213,7 +213,7 @@ class FolderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ["id", "title", "tags", "parent_id"]
+        fields = ["id", "title", "tags", "parent_id", "created_at", "child_folders"]
 
     def get_parent_id(self, obj):
         return obj.parent.id if obj.parent else None

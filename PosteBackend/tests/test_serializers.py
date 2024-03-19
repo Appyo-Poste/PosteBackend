@@ -2,13 +2,13 @@ from django.test import TestCase
 
 from PosteAPI.models import Folder, Post, User
 from PosteAPI.serializers import (
+    FolderCreateSerializer,
     FolderSerializer,
+    PostCreateSerializer,
     PostSerializer,
     UserCreateSerializer,
     UserLoginSerializer,
     UserSerializer,
-    FolderCreateSerializer,
-    PostCreateSerializer,
 )
 
 
@@ -170,8 +170,10 @@ class FolderSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        data = {"title": "Test Folder", "creator": user.id}
+        data = {"title": "Test Folder", "creator": user.id, "child_folders": []}
         serializer = FolderSerializer(data=data)
+        if not serializer.is_valid():
+            print(serializer.errors)
         self.assertTrue(serializer.is_valid())
 
 
@@ -262,7 +264,7 @@ class PostCreateSerializerTest(TestCase):
         user = User.objects.create(
             email="creator@example.com", password="securepassword123"
         )
-        folder = Folder.objects.create(title="Test Folder", creator=user)
+        Folder.objects.create(title="Test Folder", creator=user)
         data = {
             "title": "Test Post",
             "description": "Test Description",
