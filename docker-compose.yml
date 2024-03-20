@@ -20,6 +20,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
 
   postgres:
     image: postgres:latest
@@ -32,6 +33,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: always
 
     ports:
       - "5432:5432"
@@ -52,6 +54,7 @@ services:
       - ./deploy/poste.key:/etc/nginx/ssl/poste.key
     depends_on:
       - poste
+    restart: always
 
 volumes:
   data_volume:
