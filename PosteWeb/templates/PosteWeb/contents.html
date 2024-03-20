@@ -50,7 +50,7 @@
     {% for post in post_list %}
     <li>
         <div class="dropdown" style="float: left;">
-            <a href="{{ post.url }}" target="_blank">
+            <a href="https://{{ post.url }}" target="_blank">
                 <button class="dropbtn">
                     <img src="{% static 'File@3x.png' %}" alt="Pose Icon" style="width:70px;height:70px;">
                     <br>{{ post.title }}

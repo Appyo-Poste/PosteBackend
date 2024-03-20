@@ -50,7 +50,7 @@ class folderPage(LoginRequiredMixin, ListView):
         ))
                        ).distinct()
         context["shared"] = qs
-        #context["posts"] = Post.objects.filter(folder=context["root"])
+        context["posts"] = Post.objects.filter(folder=context["root"])
         return context
 
     def get_queryset(self, **kwargs):
@@ -125,8 +125,7 @@ def delete_post(request, pk, pid):
     folder = Folder.objects.get(pk=pk)
     post = Post.objects.get(pk=pid)
     user = request.user
-    permission = FolderPermission.objects.get(folder=folder, user=user)
-    if permission.permission is FolderPermissionEnum.EDITOR or FolderPermissionEnum.FULL_ACCESS:
+    if user.can_edit_folder(folder):
         post.delete()
         return redirect("folders")
     else:
@@ -294,8 +293,7 @@ def post_edit(request, pid, rid):
     root = Folder.objects.get(pk=rid)
     if request.method == 'POST':
         form = PostEdit(request.POST, instance=post, user=request.user)
-        permission = FolderPermission.objects.get(folder=root, user=request.user)
-        if permission.permission is FolderPermissionEnum.EDITOR or FolderPermissionEnum.FULL_ACCESS:
+        if request.user.can_edit_folder(root):
             if form.is_valid():
                 post.title = form.data['title']
                 post.url = form.data['url']
