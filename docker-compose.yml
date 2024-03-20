@@ -4,16 +4,16 @@ services:
   poste:
     build: .
     environment:
-      DATABASE_SETTING: docker
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USER: posteadmin
-      DATABASE_PASSWORD: topsecretpassword
-      DATABASE_NAME: poste
-      DJANGO_SETTINGS_MODULE: PosteBackend.settings
-      DJANGO_SUPERUSER_PASSWORD: admin1234
-      DJANGO_SUPERUSER_USERNAME: admin@email.com
-      DJANGO_SUPERUSER_EMAIL: admin@email.com
+      DATABASE_SETTING: "docker"
+      DATABASE_HOST: "postgres"
+      DATABASE_PORT: "5432"
+      DATABASE_USER: "posteadmin"
+      DATABASE_PASSWORD: "topsecretpassword"
+      DATABASE_NAME: "poste"
+      DJANGO_SETTINGS_MODULE: "PosteBackend.settings"
+      DJANGO_SUPERUSER_PASSWORD: "Admin1234"
+      DJANGO_SUPERUSER_USERNAME: "admin@email.com"
+      DJANGO_SUPERUSER_EMAIL: "admin@email.com"
     volumes:
         - static_volume:/usr/src/app/static
         - media_volume:/usr/src/app/media
@@ -24,9 +24,9 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_USER: posteadmin
-      POSTGRES_PASSWORD: topsecretpassword
-      POSTGRES_DB: poste
+      POSTGRES_USER: "posteadmin"
+      POSTGRES_PASSWORD: "topsecretpassword"
+      POSTGRES_DB: "poste"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "posteadmin", "-d", "poste"]
       interval: 5s

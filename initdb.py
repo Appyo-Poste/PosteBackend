@@ -5,6 +5,7 @@ import django
 from PosteAPI.models import Folder, User
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "PosteBackend.settings")
+print("DJANGO_SETTINGS_MODULE:", os.environ.get("DJANGO_SETTINGS_MODULE"))
 django.setup()
 
 
@@ -12,7 +13,7 @@ superuser_email = "admin@email.com"
 superuser_username = superuser_email  # Using the email as username
 superuser_first_name = "user"
 superuser_last_name = "user"
-superuser_password = "admin1234"
+superuser_password = "Admin1234"
 
 if not User.objects.filter(username=superuser_username).exists():
     admin = User.objects.create_superuser(
