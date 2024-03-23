@@ -34,13 +34,14 @@
 <h1>Welcome Back!</h1>
 {% if folder_list %}
 <ul class="Folders">
-    {% for folder in folder_list %}
+    {% for folder, count in folders.items %}
     <li>
         <div class="dropdown" style="float: left;">
             <a href="{% url 'contents' folder.id %}">
         <button class="dropbtn">
             <img src="{% static 'folder_icon_new.png' %}" alt="Folder Icon" style="width:70px;height:70px;">
             <br>{{ folder.title }}
+            <br><p>({{ count}} files)</p>
         </button>
             </a>
         <div class="dropdown-content">
@@ -53,13 +54,14 @@
     </li>
     {% endfor %}
 
-    {% for shared in shared %}
+    {% for shared, count in shared.items %}
     <li>
         <div class="dropdown" style="float: left;">
             <a href="{% url 'contents' shared.id %}">
         <button class="dropbtn">
             <img src="{% static 'folder_icon_new.png' %}" alt="Folder Icon" style="width:70px;height:70px;">
             <br>{{ shared.title }}
+            <br><p>({{ count}} files)</p>
         </button>
             </a>
     </div>

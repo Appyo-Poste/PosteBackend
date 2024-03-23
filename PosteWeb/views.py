@@ -39,6 +39,7 @@ class folderPage(LoginRequiredMixin, ListView):
         # adds the folder you are viewing as a context object that can be accessed in the html template
         context["root"] = Folder.objects.get(creator=self.request.user, is_root=True)
         user = self.request.user
+        root = Folder.objects.get(creator=user, is_root=True)
         qs = Folder.objects.filter((Q(
             folderpermission__user=user,
             folderpermission__permission__in=[
@@ -50,7 +51,27 @@ class folderPage(LoginRequiredMixin, ListView):
         ))
                        ).distinct()
         context["shared"] = qs
+        fileCount = {}
+        for folder in context["shared"]:
+            fileCount[folder] = (Post.objects.filter(folder=folder).count())
+        context["shared"] = fileCount
         context["posts"] = Post.objects.filter(folder=context["root"])
+
+        qs2 = Folder.objects.filter(Q(parent=root)
+                       | (Q(
+            folderpermission__user=user,
+            folderpermission__permission__in=[
+                FolderPermissionEnum.FULL_ACCESS,
+            ],
+        ) & ~Q(
+            creator=user
+        ))
+                       ).distinct()
+        fileCount = {}
+        for folder in qs2:
+            fileCount[folder] = (Post.objects.filter(folder=folder).count())
+        context["folders"] = fileCount
+        pp.pprint(context["folders"])
         return context
 
     def get_queryset(self, **kwargs):
@@ -82,7 +103,11 @@ class postPage(LoginRequiredMixin, ListView):
         context["root"] = parent
         context["back"] = parent.parent
         context["folders"] = Folder.objects.filter(parent=parent)
-        #pp.pprint(FolderPermission.objects.get(user=self.request.user, folder=parent))
+
+        fileCount = {}
+        for folder in context["folders"]:
+            fileCount[folder] = (Post.objects.filter(folder=folder).count())
+        context["folders"] = fileCount
         return context
 
     def get_queryset(self, **kwargs):
