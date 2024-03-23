@@ -219,6 +219,7 @@ class FolderSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "description",
             "creator",
             "tags",
             "parent_id",
