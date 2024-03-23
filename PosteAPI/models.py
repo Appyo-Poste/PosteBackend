@@ -127,6 +127,7 @@ class Folder(models.Model):
     )
     is_root = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(default="")
 
     def delete(self, *args, **kwargs):
         if (

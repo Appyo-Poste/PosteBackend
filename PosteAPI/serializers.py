@@ -210,13 +210,42 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
 class FolderSerializer(serializers.ModelSerializer):
     parent_id = serializers.SerializerMethodField()
+    shares = serializers.SerializerMethodField()
+    file_count = serializers.SerializerMethodField()
+    folder_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
-        fields = ["id", "title", "tags", "parent_id", "created_at", "child_folders"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "creator",
+            "tags",
+            "parent_id",
+            "is_root",
+            "created_at",
+            "shares",
+            "file_count",
+            "folder_count",
+            "child_folders",
+        ]
+
+    def get_folder_count(self, obj):
+        return obj.child_folders.count()
+
+    def get_file_count(self, obj):
+        return obj.posts.count()
 
     def get_parent_id(self, obj):
         return obj.parent.id if obj.parent else None
+
+    def get_shares(self, obj):
+        folder_permissions = FolderPermission.objects.filter(folder=obj)
+        return {
+            folder_permission.user.email: folder_permission.permission
+            for folder_permission in folder_permissions
+        }
 
 
 class FolderCreateSerializer(serializers.ModelSerializer):
